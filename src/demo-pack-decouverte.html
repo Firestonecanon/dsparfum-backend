@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pack Découverte - Démonstration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FFD700;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .feature-title {
+            color: #FFD700;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            border-left: 4px solid #FFD700;
+        }
+        
+        .demo-steps {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .step-number {
+            background: #FFD700;
+            color: #333;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+        
+        .highlight {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        .tech-details {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .button-demo {
+            display: inline-block;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .button-demo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .disabled {
+            background: #666;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎁 Pack Découverte - Fonctionnalité Complète</h1>
+        
+        <div class="success">
+            <h2>✅ Implémentation Réussie</h2>
+            <p>La fonctionnalité Pack Découverte est maintenant <span class="highlight">100% fonctionnelle</span> et intégrée au système de panier de D&S Parfum.</p>
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🔄</span>
+                <div class="feature-title">Sélection Interactive</div>
+                <p>• Grille de 12 parfums populaires</p>
+                <p>• Limitation stricte à 3 échantillons</p>
+                <p>• Indication visuelle de sélection</p>
+                <p>• Blocage automatique à 3 sélections</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <div class="feature-title">Gestion d'État</div>
+                <p>• Compteur "Sélectionnés: X/3"</p>
+                <p>• État réactif en temps réel</p>
+                <p>• Possibilité de retirer des sélections</p>
+                <p>• Réinitialisation après commande</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🛒</span>
+                <div class="feature-title">Intégration Panier</div>
+                <p>• Ajout automatique au CartContext</p>
+                <p>• Produit "Pack Découverte" dédié</p>
+                <p>• Détails des échantillons inclus</p>
+                <p>• Persistance localStorage</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">💫</span>
+                <div class="feature-title">UX Premium</div>
+                <p>• Design cohérent avec le site</p>
+                <p>• Animations fluides</p>
+                <p>• Responsive design</p>
+                <p>• Messages d'aide contextuelle</p>
+            </div>
+        </div>
+        
+        <div class="demo-steps">
+            <h2>🎮 Comment tester la fonctionnalité</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>
+                    <strong>Naviguer vers la section Pack Découverte</strong>
+                    <p>Utiliser le bouton "J'en profite" dans "Offres du moment" ou scroller vers la section</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>
+                    <strong>Sélectionner des échantillons</strong>
+                    <p>Cliquer sur 3 parfums différents. Le compteur "Sélectionnés: X/3" se met à jour</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>
+                    <strong>Voir les changements visuels</strong>
+                    <p>Les échantillons sélectionnés affichent ✓ et changent de couleur (bleu foncé)</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>
+                    <strong>Bouton activé</strong>
+                    <p>Une fois 3 échantillons sélectionnés, le bouton devient actif et coloré</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">5</div>
+                <div>
+                    <strong>Ajout au panier</strong>
+                    <p>Cliquer sur "Commander mon Pack Découverte" pour ajouter au panier</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">6</div>
+                <div>
+                    <strong>Vérification</strong>
+                    <p>Ouvrir le panier pour voir le Pack Découverte avec les détails des échantillons</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tech-details">
+            <h2>⚙️ Détails techniques</h2>
+            
+            <h3>Structure du produit dans le panier :</h3>
+            <div class="code-block">
+{
+  id: 'pack-decouverte',
+  ref: 'PACK-3ML',
+  name: 'Pack Découverte 3 échantillons',
+  brand: 'D&S Parfum',
+  price: '9,90 €',
+  contenance: '3x3ml',
+  category: 'Pack Découverte',
+  samples: ['One Million', 'Black Opium', 'Sauvage'],
+  description: 'Pack contenant: One Million, Black Opium, Sauvage'
+}
+            </div>
+            
+            <h3>États React gérés :</h3>
+            <div class="code-block">
+const [selectedSamples, setSelectedSamples] = useState([]);
+// - Tableau des échantillons sélectionnés
+// - Limité à 3 éléments maximum
+// - Réinitialisé après ajout au panier
+            </div>
+            
+            <h3>Intégration avec CartContext :</h3>
+            <div class="code-block">
+const { addToCart } = useCart();
+// - Utilise le contexte existant
+// - Ajoute le pack comme un produit normal
+// - Persistance automatique localStorage
+            </div>
+        </div>
+        
+        <div class="demo-steps">
+            <h2>🎨 États visuels du bouton</h2>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <div style="margin: 20px 0;">
+                    <strong>État désactivé (moins de 3 échantillons) :</strong><br>
+                    <span class="button-demo disabled">Commander mon Pack Découverte - 9,90€</span>
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <strong>État activé (3 échantillons sélectionnés) :</strong><br>
+                    <span class="button-demo">Commander mon Pack Découverte - 9,90€</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="success">
+            <h2>🎉 Résultat Final</h2>
+            <p>La fonctionnalité Pack Découverte est maintenant <span class="highlight">entièrement opérationnelle</span> :</p>
+            <ul>
+                <li>✅ Interface utilisateur intuitive et responsive</li>
+                <li>✅ Logique de sélection robuste (max 3 échantillons)</li>
+                <li>✅ Intégration parfaite avec le système de panier</li>
+                <li>✅ Gestion d'état React optimisée</li>
+                <li>✅ Persistance des données</li>
+                <li>✅ UX premium avec animations</li>
+                <li>✅ Messages de confirmation</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <h3>🚀 Prêt pour la production !</h3>
+            <p>Le Pack Découverte est maintenant prêt à être utilisé par les clients.</p>
+        </div>
+    </div>
+</body>
+</html>
