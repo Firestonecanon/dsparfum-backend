@@ -53,7 +53,6 @@ const dbPath = path.join(__dirname, 'data', 'clients.db');
 console.log(`📂 Utilisation de la base de données: ${dbPath}`);
 
 // Créer le répertoire data s'il n'existe pas
-import fs from 'fs';
 const dataDir = path.dirname(dbPath);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
