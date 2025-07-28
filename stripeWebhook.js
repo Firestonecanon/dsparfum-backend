@@ -1,7 +1,7 @@
-const express = require('express');
-const Stripe = require('stripe');
-const dotenv = require('dotenv');
-const nodemailer = require('nodemailer');
+import express from 'express';
+import Stripe from 'stripe';
+import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
@@ -45,4 +45,4 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   res.json({ received: true });
 });
 
-module.exports = router;
+export default router;

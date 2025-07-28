@@ -2,7 +2,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import stripeWebhook from './stripeWebhook.mjs';
+import stripeWebhook from './stripeWebhook.js';
 import sqlite3pkg from 'sqlite3';
 const sqlite3 = sqlite3pkg.verbose();
 import path from 'path';
