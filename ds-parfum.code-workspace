@@ -1,0 +1,89 @@
+{
+	"folders": [
+		{
+			"name": "DS Parfum - E-commerce",
+			"path": "."
+		},
+		{
+			"path": "../Projet_DS_Parfum - Copie"
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true,
+		"emmet.includeLanguages": {
+			"javascript": "javascriptreact"
+		},
+		"explorer.confirmDelete": false,
+		"files.associations": {
+			"*.jsx": "javascriptreact"
+		},
+		"typescript.preferences.quoteStyle": "single",
+		"javascript.preferences.quoteStyle": "single"
+	},
+	"extensions": {
+		"recommendations": [
+			"esbenp.prettier-vscode",
+			"bradlc.vscode-tailwindcss",
+			"ms-vscode.vscode-typescript-next",
+			"formulahendry.auto-rename-tag",
+			"christian-kohler.path-intellisense",
+			"ms-vscode.vscode-json"
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch DS Parfum Dev Server",
+				"type": "node",
+				"request": "launch",
+				"cwd": "${workspaceFolder}",
+				"runtimeExecutable": "npm",
+				"runtimeArgs": ["run", "dev"]
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Dev Server",
+				"type": "shell",
+				"command": "npm run dev",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "new"
+				},
+				"isBackground": true
+			},
+			{
+				"label": "Build Production",
+				"type": "shell",
+				"command": "npm run build",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "new"
+				}
+			},
+			{
+				"label": "Preview Build",
+				"type": "shell",
+				"command": "npm run preview",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "new"
+				},
+				"isBackground": true
+			}
+		]
+	}
+}

@@ -1,0 +1,44 @@
+{
+  "name": "dsparfum-backend",
+  "version": "2.0.0",
+  "description": "Backend D&S Parfum simplifié avec monitoring avancé",
+  "type": "module",
+  "main": "backend-simple.js",
+  "scripts": {
+    "start": "node backend-simple.js",
+    "start:admin": "node backend-admin.js",
+    "start:simple": "node backend-simple.js",
+    "dev": "nodemon backend-simple.js",
+    "test": "node test-minimal.js",
+    "test:complete": "node test-complete.js",
+    "monitor": "node monitor.js",
+    "monitor:prod": "BACKEND_URL=https://dsparfum-backend-go.onrender.com node monitor.js",
+    "build": "echo 'Backend simplifié prêt pour production'",
+    "deploy": "node deploy.js",
+    "deploy:test": "node deploy.js --test",
+    "health": "curl -f http://localhost:3001/api/health || echo 'Server not running'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.16.3",
+    "sqlite3": "^5.1.7",
+    "stripe": "^18.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "parfum",
+    "admin",
+    "backend",
+    "sqlite"
+  ],
+  "author": "D&S Parfum",
+  "license": "MIT"
+}

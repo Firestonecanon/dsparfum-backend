@@ -1,0 +1,38 @@
+{
+  "name": "ds-parfum",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && echo 'Build completed. Ready for deployment!'",
+    "build-force": "rm -rf dist && vite build",
+    "backup": "node src/backend/backup-service.js",
+    "backup:start": "pm2 start src/backend/backup-service.js --name dsparfum-backup"
+  },
+  "dependencies": {
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "emailjs-com": "^3.2.0",
+    "express": "^5.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.7.1",
+    "sqlite3": "^5.1.7",
+    "stripe": "^18.3.0"
+  },
+  "devDependencies": {
+    "@fullhuman/postcss-purgecss": "^7.0.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "cssnano": "^7.1.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^4.3.9",
+    "vitest": "^3.2.4"
+  }
+}

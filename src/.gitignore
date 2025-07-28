@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Base de données
+*.sqlite
+*.db
+data/
+
+# Logs
+logs
+*.log
+
+# Fichiers de sauvegarde et versions obsolètes
+*backup*
+*-backup*
+*-broken*
+*-old*
+*-fixed*
+*-simple*
+*-new*
+# backend-admin*.js - Commenté pour permettre backend-admin.js
+server-postgresql.js
+backend-postgresql*.js
+package-postgresql.json
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Build outputs
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Exports
+clients-export.json
+export-data.js
+
+# Documentation temporaire
+DEPLOY_LOG.md
+STRIPE-CONFIGURATION.md
+
+# Fichiers de développement/test inutiles
+test-*.js
+test-*.html
+server-minimal.js
+backend-fix.js
+backend-simple.js
+server.js
+
+# Scripts batch Windows (développement local)
+*.bat
+
+# Fichiers de documentation temporaire de développement
+CLEAN-START.md
+FORCE-START.md
+PREUVE-BACKEND.html
+STATUT-FINAL.md
+RECAP-FINAL.md
+README-BACKEND.md
+README-BACKEND-FINAL.md
+RENDER-TROUBLESHOOT.md
+
+# Scripts de monitoring/déploiement local
+monitor-deploy.js
+deploy.sh
+
+# Fichiers de configuration exemple
+env.production.example
+
+# Dossier src temporaire
+src/
+
+# Database files
+*.db-shm
+*.db-wal
