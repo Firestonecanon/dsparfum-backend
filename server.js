@@ -300,6 +300,29 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
+// Route de redirection pour l'admin
+app.get('/admin', (req, res) => {
+  // Rediriger vers la page admin du frontend
+  res.redirect('https://dsparfum.netlify.app/admin');
+});
+
+// Route d'information pour l'API admin
+app.get('/api/admin', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API Admin D&S Parfum',
+    version: '1.0.0',
+    endpoints: {
+      'GET /api/admin/clients': 'Récupérer tous les clients',
+      'POST /api/admin/clients': 'Créer un nouveau client',
+      'PUT /api/admin/clients/:id': 'Mettre à jour un client',
+      'DELETE /api/admin/clients/:id': 'Supprimer un client',
+      'GET /api/admin/export': 'Exporter les données clients en CSV'
+    },
+    frontend_url: 'https://dsparfum.netlify.app/admin'
+  });
+});
+
 // Routes admin pour la gestion des clients
 app.get('/api/admin/clients', (req, res) => {
   db.all('SELECT * FROM clients ORDER BY created_at DESC', [], (err, rows) => {
