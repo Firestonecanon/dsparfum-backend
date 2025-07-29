@@ -151,7 +151,18 @@ app.post('/api/contact', async (req, res) => {
   console.log('📨 Nouveau contact reçu:', req.body);
   
   try {
-    const { name, email, phone = '', address = '', subject = '', message = '', cart = [], total = 0, promo = '' } = req.body;
+    const { 
+      name, 
+      email, 
+      phone = '', 
+      address = '', 
+      subject = '', 
+      message = '', 
+      paymentMethod = '',
+      cart = [], 
+      total = 0, 
+      promo = '' 
+    } = req.body;
     
     // Validation des données requises
     if (!name || !email || !message) {
@@ -163,8 +174,8 @@ app.post('/api/contact', async (req, res) => {
     const totalAmount = parseFloat(total) || 0;
     
     const query = `
-      INSERT INTO clients (name, email, phone, address, subject, message, cart_data, total_amount, promo_code, source)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO clients (name, email, phone, address, subject, message, paymentmethod, cart_data, total_amount, promo_code, source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
     
@@ -175,6 +186,7 @@ app.post('/api/contact', async (req, res) => {
       address,
       subject,
       message,
+      paymentMethod,
       cartData,
       totalAmount,
       promo,
