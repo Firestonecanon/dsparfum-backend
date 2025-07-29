@@ -6,11 +6,7 @@
 // - Affiche un encart visuel rassurant si une commande est détectée
 import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
-
-// Configuration API
-const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://dsparfum-backend-go.onrender.com' 
-  : 'http://localhost:3001';
+import { CONTACT_URL } from '../config/api.js';
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -182,8 +178,8 @@ export default function ContactSection() {
         
         // Enregistrer le contact dans la base admin
         try {
-          console.log('🔄 Tentative d\'enregistrement sur:', `${API_BASE_URL}/api/contact`);
-          const response = await fetch(`${API_BASE_URL}/api/contact`, {
+          console.log('🔄 Tentative d\'enregistrement sur:', CONTACT_URL);
+          const response = await fetch(CONTACT_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -209,7 +205,7 @@ export default function ContactSection() {
           }
         } catch (error) {
           console.error('❌ Erreur enregistrement contact admin:', error);
-          console.error('🔗 URL utilisée:', `${API_BASE_URL}/api/contact`);
+          console.error('🔗 URL utilisée:', CONTACT_URL);
           // Ne pas bloquer l'utilisateur si l'admin ne répond pas
         }
         

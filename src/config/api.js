@@ -25,6 +25,7 @@ export const CLIENTS_URL = `${API_URL}/clients`;
 export const ADMIN_CLIENTS_URL = `${API_URL}/admin/clients`;
 export const ADMIN_EXPORT_URL = `${API_URL}/admin/export`;
 export const CHECKOUT_URL = `${API_URL}/create-checkout-session`;
+export const CONTACT_URL = `${API_URL}/contact`;
 
 // Log pour debug
 if (isDevelopment) {
@@ -34,6 +35,7 @@ if (isDevelopment) {
   console.log('  - ADMIN_CLIENTS_URL:', ADMIN_CLIENTS_URL);
   console.log('  - ADMIN_EXPORT_URL:', ADMIN_EXPORT_URL);
   console.log('  - CHECKOUT_URL:', CHECKOUT_URL);
+  console.log('  - CONTACT_URL:', CONTACT_URL);
 } else {
   console.log('🚀 Mode production - Backend Render:', API_BASE_URL);
   console.log('  - CHECKOUT_URL:', CHECKOUT_URL);
