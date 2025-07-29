@@ -88,10 +88,17 @@ const port = process.env.PORT || 10000;
 // === Configuration Stripe ===
 let stripe;
 try {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  console.log('✅ Stripe configuré');
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.log('⚠️  STRIPE_SECRET_KEY non défini - Mode test uniquement');
+    // Utiliser une clé de test par défaut pour éviter les crashes
+    stripe = null;
+  } else {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    console.log('✅ Stripe configuré avec clé:', process.env.STRIPE_SECRET_KEY.substring(0, 12) + '...');
+  }
 } catch (error) {
   console.error('❌ Erreur configuration Stripe:', error);
+  stripe = null;
 }
 
 // === Middleware ===
@@ -863,6 +870,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
     
     console.log('💳 Nouvelle session Stripe + enregistrement client:', { total, customerInfo });
     
+    // Vérifier si Stripe est configuré
+    if (!stripe) {
+      return res.status(500).json({ 
+        error: 'Stripe non configuré sur le serveur',
+        details: 'La variable STRIPE_SECRET_KEY n\'est pas définie'
+      });
+    }
+    
     if (!customerInfo.email) {
       return res.status(400).json({ error: 'Email client requis' });
     }
@@ -949,9 +964,21 @@ app.post('/api/create-checkout-session', async (req, res) => {
     console.error('❌ Erreur création session Stripe + client:', error);
     res.status(500).json({ 
       error: 'Erreur création session de paiement',
-      details: error.message 
+      details: error.message,
+      stripeConfigured: !!stripe
     });
   }
+});
+
+// === Route de diagnostic Stripe ===
+app.get('/api/stripe-status', (req, res) => {
+  res.json({
+    stripeConfigured: !!stripe,
+    hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
+    keyPrefix: process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.substring(0, 12) + '...' : 'Non défini',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.post('/api/create-payment-intent', async (req, res) => {
