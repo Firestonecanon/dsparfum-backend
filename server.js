@@ -319,7 +319,7 @@ app.get('/api/admin', (req, res) => {
       'DELETE /api/admin/clients/:id': 'Supprimer un client',
       'GET /api/admin/export': 'Exporter les données clients en CSV'
     },
-    frontend_url: 'https://dsparfum.netlify.app/#/admin'
+    admin_url: 'https://api.dsparfum.fr/admin'
   });
 });
 
@@ -586,11 +586,6 @@ app.get('/', (req, res) => {
 // Route favicon pour éviter les erreurs CSP
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end(); // No Content
-});
-
-// Route admin à la racine pour redirection
-app.get('/admin', (req, res) => {
-  res.redirect('https://dsparfum.netlify.app/#/admin');
 });
 
 // Route pour créer une session de paiement Stripe
