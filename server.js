@@ -231,12 +231,23 @@ app.get('/admin', (req, res) => {
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: #4299e1; color: white; padding: 20px; border-radius: 8px; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: bold; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-weight: bold; color: #2d3748; font-size: 0.9rem; }
         .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; }
         .btn-primary { background: #4299e1; color: white; }
         .btn-success { background: #48bb78; color: white; }
         .btn-danger { background: #f56565; color: white; }
-        .search-box { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 300px; }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-info { background: #38b2ac; color: white; }
+        .search-box, .filter-select, .filter-date { padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+        .search-box { width: 250px; }
+        .filter-select { width: 150px; }
+        .filter-date { width: 140px; }
+        .duplicate-warning { background: #fed7d7; color: #c53030; padding: 10px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #f56565; }
+        .duplicate-row { background-color: #fed7d7 !important; }
+        .unique-row { background-color: #c6f6d5 !important; }
         .clients-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .clients-table th, .clients-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         .clients-table th { background: #f8f9fa; font-weight: bold; }
@@ -268,10 +279,54 @@ app.get('/admin', (req, res) => {
             </div>
         </div>
 
+        <div class="filters">
+            <div class="filter-group">
+                <label>🔍 Rechercher:</label>
+                <input type="text" class="search-box" id="searchBox" placeholder="Nom, email, téléphone..." onkeyup="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>📅 Période:</label>
+                <select class="filter-select" id="periodFilter" onchange="applyFilters()">
+                    <option value="">Toutes les dates</option>
+                    <option value="today">Aujourd'hui</option>
+                    <option value="week">Cette semaine</option>
+                    <option value="month">Ce mois</option>
+                    <option value="year">Cette année</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>📊 Source:</label>
+                <select class="filter-select" id="sourceFilter" onchange="applyFilters()">
+                    <option value="">Toutes sources</option>
+                    <option value="contact_form">Formulaire contact</option>
+                    <option value="cart_order">Commande panier</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>💰 Montant:</label>
+                <select class="filter-select" id="amountFilter" onchange="applyFilters()">
+                    <option value="">Tous montants</option>
+                    <option value="free">Gratuit (0€)</option>
+                    <option value="paid">Payant (>0€)</option>
+                    <option value="high">Élevé (>50€)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>👥 Doublons:</label>
+                <select class="filter-select" id="duplicateFilter" onchange="applyFilters()">
+                    <option value="">Tous</option>
+                    <option value="unique">Uniques seulement</option>
+                    <option value="duplicates">Doublons seulement</option>
+                </select>
+            </div>
+        </div>
+
         <div class="controls">
             <button class="btn btn-primary" onclick="loadClients()">🔄 Actualiser</button>
-            <button class="btn btn-success" onclick="downloadBackup()">💾 Télécharger Backup</button>
-            <input type="text" class="search-box" id="searchBox" placeholder="Rechercher un client..." onkeyup="searchClients()">
+            <button class="btn btn-success" onclick="downloadBackup()">💾 Backup</button>
+            <button class="btn btn-warning" onclick="cleanDuplicates()">🧹 Nettoyer doublons</button>
+            <button class="btn btn-info" onclick="exportFiltered()">📤 Exporter filtrés</button>
+            <button class="btn btn-danger" onclick="resetFilters()">↩️ Reset filtres</button>
         </div>
 
         <div id="message"></div>
@@ -283,6 +338,8 @@ app.get('/admin', (req, res) => {
 
     <script>
         let allClients = [];
+        let filteredClients = [];
+        let duplicateGroups = [];
 
         async function loadStats() {
             try {
@@ -306,7 +363,8 @@ app.get('/admin', (req, res) => {
                 if (!response.ok) throw new Error('Erreur réseau');
                 
                 allClients = await response.json();
-                displayClients(allClients);
+                detectDuplicates();
+                applyFilters();
                 await loadStats();
                 
                 showMessage('Clients chargés avec succès!', 'success');
@@ -316,15 +374,162 @@ app.get('/admin', (req, res) => {
             }
         }
 
+        function detectDuplicates() {
+            duplicateGroups = [];
+            const emailGroups = {};
+            const phoneGroups = {};
+            
+            // Grouper par email
+            allClients.forEach(client => {
+                if (client.email) {
+                    const email = client.email.toLowerCase().trim();
+                    if (!emailGroups[email]) emailGroups[email] = [];
+                    emailGroups[email].push(client);
+                }
+            });
+            
+            // Grouper par téléphone
+            allClients.forEach(client => {
+                if (client.phone) {
+                    const phone = client.phone.replace(/\s/g, '').replace(/[^\d+]/g, '');
+                    if (phone.length >= 8) {
+                        if (!phoneGroups[phone]) phoneGroups[phone] = [];
+                        phoneGroups[phone].push(client);
+                    }
+                }
+            });
+            
+            // Identifier les doublons
+            Object.values(emailGroups).forEach(group => {
+                if (group.length > 1) {
+                    duplicateGroups.push({ type: 'email', clients: group });
+                }
+            });
+            
+            Object.values(phoneGroups).forEach(group => {
+                if (group.length > 1) {
+                    // Vérifier qu'on n'a pas déjà ce groupe par email
+                    const existingGroup = duplicateGroups.find(g => 
+                        g.clients.some(c1 => group.some(c2 => c1.id === c2.id))
+                    );
+                    if (!existingGroup) {
+                        duplicateGroups.push({ type: 'phone', clients: group });
+                    }
+                }
+            });
+            
+            // Marquer les clients doublons
+            allClients.forEach(client => {
+                client.isDuplicate = duplicateGroups.some(group => 
+                    group.clients.some(c => c.id === client.id)
+                );
+            });
+            
+            // Afficher le résumé des doublons
+            updateDuplicateWarning();
+        }
+
+        function updateDuplicateWarning() {
+            const messageDiv = document.getElementById('message');
+            if (duplicateGroups.length > 0) {
+                const totalDuplicates = duplicateGroups.reduce((sum, group) => sum + group.clients.length, 0);
+                messageDiv.innerHTML = '<div class="duplicate-warning">' +
+                    '⚠️ ' + duplicateGroups.length + ' groupes de doublons détectés (' + totalDuplicates + ' clients concernés)' +
+                    '</div>';
+            }
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const periodFilter = document.getElementById('periodFilter').value;
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const amountFilter = document.getElementById('amountFilter').value;
+            const duplicateFilter = document.getElementById('duplicateFilter').value;
+            
+            filteredClients = allClients.filter(client => {
+                // Filtre de recherche
+                if (searchTerm) {
+                    const matchesSearch = 
+                        (client.name && client.name.toLowerCase().includes(searchTerm)) ||
+                        (client.email && client.email.toLowerCase().includes(searchTerm)) ||
+                        (client.phone && client.phone.toLowerCase().includes(searchTerm)) ||
+                        (client.message && client.message.toLowerCase().includes(searchTerm));
+                    if (!matchesSearch) return false;
+                }
+                
+                // Filtre de période
+                if (periodFilter) {
+                    const clientDate = new Date(client.created_at);
+                    const now = new Date();
+                    
+                    switch (periodFilter) {
+                        case 'today':
+                            if (clientDate.toDateString() !== now.toDateString()) return false;
+                            break;
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            if (clientDate < weekAgo) return false;
+                            break;
+                        case 'month':
+                            if (clientDate.getMonth() !== now.getMonth() || 
+                                clientDate.getFullYear() !== now.getFullYear()) return false;
+                            break;
+                        case 'year':
+                            if (clientDate.getFullYear() !== now.getFullYear()) return false;
+                            break;
+                    }
+                }
+                
+                // Filtre de source
+                if (sourceFilter && client.source !== sourceFilter) return false;
+                
+                // Filtre de montant
+                if (amountFilter) {
+                    const amount = parseFloat(client.total_amount) || 0;
+                    switch (amountFilter) {
+                        case 'free':
+                            if (amount !== 0) return false;
+                            break;
+                        case 'paid':
+                            if (amount <= 0) return false;
+                            break;
+                        case 'high':
+                            if (amount <= 50) return false;
+                            break;
+                    }
+                }
+                
+                // Filtre de doublons
+                if (duplicateFilter) {
+                    switch (duplicateFilter) {
+                        case 'unique':
+                            if (client.isDuplicate) return false;
+                            break;
+                        case 'duplicates':
+                            if (!client.isDuplicate) return false;
+                            break;
+                    }
+                }
+                
+                return true;
+            });
+            
+            displayClients(filteredClients);
+        }
+
         function displayClients(clients) {
             const container = document.getElementById('clientsContainer');
             
             if (!clients || clients.length === 0) {
-                container.innerHTML = '<div class="error">Aucun client trouvé</div>';
+                container.innerHTML = '<div class="error">Aucun client trouvé avec ces filtres</div>';
                 return;
             }
 
-            let html = '<table class="clients-table"><thead><tr>';
+            let html = '<div style="margin-bottom: 10px; color: #666;">' +
+                '<strong>' + clients.length + '</strong> client(s) affiché(s) sur ' + allClients.length + ' total' +
+                '</div>';
+            
+            html += '<table class="clients-table"><thead><tr>';
             html += '<th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Message</th><th>Total</th><th>Source</th><th>Date</th><th>Actions</th>';
             html += '</tr></thead><tbody>';
 
@@ -332,8 +537,9 @@ app.get('/admin', (req, res) => {
                 const date = new Date(client.created_at).toLocaleDateString('fr-FR');
                 const total = client.total_amount ? parseFloat(client.total_amount).toFixed(2) + '€' : '-';
                 const source = client.source || 'contact_form';
+                const rowClass = client.isDuplicate ? 'duplicate-row' : 'unique-row';
                 
-                html += '<tr>';
+                html += '<tr class="' + rowClass + '">';
                 html += '<td>' + client.id + '</td>';
                 html += '<td>' + (client.name || '-') + '</td>';
                 html += '<td>' + (client.email || '-') + '</td>';
@@ -350,21 +556,77 @@ app.get('/admin', (req, res) => {
             container.innerHTML = html;
         }
 
-        function searchClients() {
-            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-            if (!searchTerm) {
-                displayClients(allClients);
+        function resetFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('periodFilter').value = '';
+            document.getElementById('sourceFilter').value = '';
+            document.getElementById('amountFilter').value = '';
+            document.getElementById('duplicateFilter').value = '';
+            applyFilters();
+            showMessage('Filtres réinitialisés', 'success');
+        }
+
+        async function cleanDuplicates() {
+            if (duplicateGroups.length === 0) {
+                showMessage('Aucun doublon détecté!', 'success');
                 return;
             }
+            
+            const confirmed = confirm('Voulez-vous supprimer ' + duplicateGroups.length + ' groupes de doublons?\\nSeul le client le plus récent de chaque groupe sera conservé.');
+            if (!confirmed) return;
+            
+            let deletedCount = 0;
+            
+            for (const group of duplicateGroups) {
+                // Trier par date de création (le plus récent en premier)
+                const sortedClients = group.clients.sort((a, b) => 
+                    new Date(b.created_at) - new Date(a.created_at)
+                );
+                
+                // Supprimer tous sauf le premier (le plus récent)
+                for (let i = 1; i < sortedClients.length; i++) {
+                    try {
+                        const response = await fetch('/api/admin/clients/' + sortedClients[i].id, { 
+                            method: 'DELETE' 
+                        });
+                        if (response.ok) {
+                            deletedCount++;
+                        }
+                    } catch (error) {
+                        console.error('Erreur suppression client:', error);
+                    }
+                }
+            }
+            
+            showMessage(deletedCount + ' doublons supprimés avec succès!', 'success');
+            loadClients(); // Recharger la liste
+        }
 
-            const filtered = allClients.filter(client => 
-                (client.name && client.name.toLowerCase().includes(searchTerm)) ||
-                (client.email && client.email.toLowerCase().includes(searchTerm)) ||
-                (client.phone && client.phone.toLowerCase().includes(searchTerm)) ||
-                (client.message && client.message.toLowerCase().includes(searchTerm))
-            );
-
-            displayClients(filtered);
+        async function exportFiltered() {
+            const dataToExport = {
+                exportDate: new Date().toISOString(),
+                totalClients: filteredClients.length,
+                filters: {
+                    search: document.getElementById('searchBox').value,
+                    period: document.getElementById('periodFilter').value,
+                    source: document.getElementById('sourceFilter').value,
+                    amount: document.getElementById('amountFilter').value,
+                    duplicate: document.getElementById('duplicateFilter').value
+                },
+                clients: filteredClients
+            };
+            
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dsparfum_filtered_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showMessage(filteredClients.length + ' clients filtrés exportés!', 'success');
         }
 
         async function deleteClient(id) {
@@ -658,6 +920,51 @@ app.get('/api/admin/stats', async (req, res) => {
   } catch (error) {
     console.error('❌ Erreur génération statistiques PostgreSQL:', error);
     res.status(500).json({ error: 'Erreur génération des statistiques' });
+  }
+});
+
+// === Route détection doublons PostgreSQL ===
+app.get('/api/admin/duplicates', async (req, res) => {
+  try {
+    // Rechercher les doublons par email
+    const emailDuplicates = await pool.query(`
+      SELECT email, COUNT(*) as count, 
+             array_agg(id ORDER BY created_at DESC) as client_ids,
+             array_agg(name ORDER BY created_at DESC) as names
+      FROM clients 
+      WHERE email IS NOT NULL AND email != ''
+      GROUP BY email 
+      HAVING COUNT(*) > 1
+      ORDER BY count DESC
+    `);
+    
+    // Rechercher les doublons par téléphone
+    const phoneDuplicates = await pool.query(`
+      SELECT phone, COUNT(*) as count, 
+             array_agg(id ORDER BY created_at DESC) as client_ids,
+             array_agg(name ORDER BY created_at DESC) as names
+      FROM clients 
+      WHERE phone IS NOT NULL AND phone != ''
+      GROUP BY phone 
+      HAVING COUNT(*) > 1
+      ORDER BY count DESC
+    `);
+    
+    const duplicateStats = {
+      emailDuplicates: emailDuplicates.rows,
+      phoneDuplicates: phoneDuplicates.rows,
+      totalEmailGroups: emailDuplicates.rows.length,
+      totalPhoneGroups: phoneDuplicates.rows.length,
+      totalDuplicateClients: emailDuplicates.rows.reduce((sum, row) => sum + parseInt(row.count), 0) +
+                            phoneDuplicates.rows.reduce((sum, row) => sum + parseInt(row.count), 0)
+    };
+    
+    console.log(`🔍 Doublons détectés: ${duplicateStats.totalEmailGroups} par email, ${duplicateStats.totalPhoneGroups} par téléphone`);
+    res.json(duplicateStats);
+    
+  } catch (error) {
+    console.error('❌ Erreur détection doublons PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur détection des doublons' });
   }
 });
 
