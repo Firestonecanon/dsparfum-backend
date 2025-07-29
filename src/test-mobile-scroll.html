@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Scroll - DS Parfum</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-button {
+            padding: 8px 16px;
+            background: #d97706;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .nav-button:hover {
+            background: #b45309;
+            transform: translateY(-1px);
+        }
+        
+        .content {
+            margin-top: 80px;
+        }
+        
+        .section {
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .section:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .section:nth-child(even) {
+            background: rgba(249, 250, 251, 0.5);
+        }
+        
+        .section h2 {
+            font-size: 2.5rem;
+            margin: 0 0 20px 0;
+            color: #1f2937;
+            text-align: center;
+        }
+        
+        .section p {
+            font-size: 1.1rem;
+            color: #6b7280;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        
+        .collections-tabs {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #d97706;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            color: #d97706;
+            font-weight: 500;
+        }
+        
+        .tab-button.active {
+            background: #d97706;
+            color: white;
+        }
+        
+        .test-info {
+            background: rgba(34, 197, 94, 0.1);
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            max-width: 500px;
+        }
+        
+        .test-info h3 {
+            color: #16a34a;
+            margin: 0 0 10px 0;
+        }
+        
+        .browser-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            max-width: 500px;
+            font-size: 14px;
+        }
+        
+        .browser-info h4 {
+            color: #2563eb;
+            margin: 0 0 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                height: 120px;
+                flex-direction: column;
+                padding: 10px;
+                justify-content: center;
+            }
+            
+            .content {
+                margin-top: 120px;
+            }
+            
+            .nav-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav-button {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            
+            .section h2 {
+                font-size: 2rem;
+            }
+            
+            .section {
+                padding: 60px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0; color: #d97706; font-size: 1.5rem;">DS Parfum - Test Scroll</h1>
+        <div class="nav-buttons">
+            <button class="nav-button" onclick="scrollToSection('hero')">Accueil</button>
+            <button class="nav-button" onclick="scrollToSection('collections')">Collections</button>
+            <button class="nav-button" onclick="scrollToSection('pack')">Pack Découverte</button>
+            <button class="nav-button" onclick="scrollToSection('contact')">Contact</button>
+        </div>
+    </div>
+    
+    <div class="content">
+        <section id="hero" class="section">
+            <h2>🏠 Section Accueil</h2>
+            <p>Testez le scroll vers les différentes sections en utilisant les boutons de navigation. Cette page teste spécifiquement le comportement de scroll sur mobile.</p>
+            <div class="test-info">
+                <h3>Test en cours :</h3>
+                <p>Vérification du scroll mobile cross-browser avec fallback personnalisé pour iOS Safari et autres navigateurs mobiles.</p>
+            </div>
+        </section>
+        
+        <section id="collections" class="section">
+            <h2>👔 Section Collections</h2>
+            <p>Cette section simule la zone des collections avec des onglets. Testez le scroll vers cette section depuis le menu.</p>
+            <div class="collections-tabs">
+                <button class="tab-button active" onclick="handleTabClick('homme')">Homme</button>
+                <button class="tab-button" onclick="handleTabClick('femme')">Femme</button>
+                <button class="tab-button" onclick="handleTabClick('mixte')">Mixte</button>
+                <button class="tab-button" onclick="handleTabClick('luxe')">Luxe</button>
+            </div>
+            <div id="collections-content" style="margin-top: 20px; text-align: center;">
+                <p><strong>Contenu de la collection active</strong></p>
+                <p>Le scroll vers cette zone devrait fonctionner parfaitement sur tous les navigateurs mobiles.</p>
+            </div>
+        </section>
+        
+        <section id="pack" class="section">
+            <h2>📦 Pack Découverte</h2>
+            <p>Section pour tester le scroll vers le pack découverte. L'offset doit être correct pour éviter que le header ne cache le contenu.</p>
+            <div class="test-info">
+                <h3>Points de test :</h3>
+                <ul style="text-align: left; margin: 10px 0;">
+                    <li>Scroll fluide sur iOS Safari</li>
+                    <li>Scroll fluide sur Chrome Mobile</li>
+                    <li>Scroll fluide sur Firefox Mobile</li>
+                    <li>Offset correct (120px sur mobile)</li>
+                </ul>
+            </div>
+        </section>
+        
+        <section id="contact" class="section">
+            <h2>📞 Section Contact</h2>
+            <p>Dernière section pour tester le scroll complet de la page. Le comportement doit être cohérent sur tous les appareils.</p>
+            <div class="browser-info">
+                <h4>Informations du navigateur :</h4>
+                <p id="browser-details">Chargement...</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Fonction utilitaire pour le smooth scroll cross-browser optimisée mobile
+        function smoothScrollTo(targetPosition, duration = 600) {
+            const startPosition = window.pageYOffset;
+            const distance = targetPosition - startPosition;
+            let startTime = null;
+
+            // Si la distance est très petite, on scroll directement
+            if (Math.abs(distance) < 10) {
+                window.scrollTo(0, targetPosition);
+                return;
+            }
+
+            function animation(currentTime) {
+                if (startTime === null) startTime = currentTime;
+                const timeElapsed = currentTime - startTime;
+                const run = ease(timeElapsed, startPosition, distance, duration);
+                
+                // Utiliser scrollTo avec coordonnées uniquement pour éviter les problèmes de comportement
+                window.scrollTo(0, Math.round(run));
+                
+                if (timeElapsed < duration) {
+                    requestAnimationFrame(animation);
+                } else {
+                    // S'assurer qu'on arrive exactement à la position finale
+                    window.scrollTo(0, targetPosition);
+                }
+            }
+
+            function ease(t, b, c, d) {
+                // Fonction d'easing plus douce pour mobile
+                t /= d;
+                t--;
+                return c * (t * t * t + 1) + b;
+            }
+
+            requestAnimationFrame(animation);
+        }
+
+        // Fonction de scroll optimisée pour mobile
+        function scrollToPosition(targetPosition) {
+            // Détecter si on est sur mobile
+            const isMobile = window.innerWidth <= 768;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            
+            console.log('Scroll vers:', targetPosition, 'Mobile:', isMobile, 'iOS:', isIOS, 'Safari:', isSafari);
+            
+            // Pour iOS Safari, utiliser une approche différente
+            if (isIOS || isSafari) {
+                // Scroll immédiat pour iOS Safari qui a des problèmes avec smooth scroll
+                window.scrollTo(0, targetPosition);
+                return;
+            }
+            
+            // Test de support du smooth scroll
+            const supportsNativeSmooth = 'scrollBehavior' in document.documentElement.style;
+            
+            if (supportsNativeSmooth && !isMobile) {
+                // Utiliser le smooth scroll natif sur desktop
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Utiliser l'animation personnalisée pour mobile et les navigateurs sans support
+                smoothScrollTo(targetPosition);
+            }
+        }
+
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                const isMobile = window.innerWidth <= 768;
+                // Augmenter l'offset pour mobile pour éviter que le header ne cache le contenu
+                const offset = isMobile ? 120 : 100;
+                
+                const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                const targetPosition = Math.max(0, elementPosition - offset);
+                
+                console.log('ScrollToSection:', sectionId, 'Element pos:', elementPosition, 'Target:', targetPosition);
+                
+                // Utiliser la nouvelle fonction de scroll optimisée
+                scrollToPosition(targetPosition);
+            }
+        }
+
+        function handleTabClick(collectionKey) {
+            // Simuler le changement d'onglet
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Scroll vers la zone des produits après un court délai
+            setTimeout(() => {
+                const collectionsContent = document.getElementById('collections-content');
+                if (collectionsContent) {
+                    const isMobile = window.innerWidth <= 768;
+                    const offset = isMobile ? 120 : 100;
+                    
+                    const elementPosition = collectionsContent.getBoundingClientRect().top + window.pageYOffset;
+                    const targetPosition = Math.max(0, elementPosition - offset);
+                    
+                    console.log('Tab click:', collectionKey, 'Element pos:', elementPosition, 'Target:', targetPosition);
+                    
+                    scrollToPosition(targetPosition);
+                }
+            }, 150);
+        }
+
+        // Afficher les informations du navigateur
+        document.addEventListener('DOMContentLoaded', function() {
+            const browserDetails = document.getElementById('browser-details');
+            const userAgent = navigator.userAgent;
+            const isMobile = window.innerWidth <= 768;
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            const isChrome = /Chrome/.test(userAgent);
+            const isFirefox = /Firefox/.test(userAgent);
+            
+            browserDetails.innerHTML = `
+                <strong>User Agent:</strong> ${userAgent.substring(0, 80)}...<br>
+                <strong>Mobile:</strong> ${isMobile ? 'Oui' : 'Non'}<br>
+                <strong>iOS:</strong> ${isIOS ? 'Oui' : 'Non'}<br>
+                <strong>Safari:</strong> ${isSafari ? 'Oui' : 'Non'}<br>
+                <strong>Chrome:</strong> ${isChrome ? 'Oui' : 'Non'}<br>
+                <strong>Firefox:</strong> ${isFirefox ? 'Oui' : 'Non'}<br>
+                <strong>Largeur:</strong> ${window.innerWidth}px<br>
+                <strong>Scroll Behavior Support:</strong> ${'scrollBehavior' in document.documentElement.style ? 'Oui' : 'Non'}
+            `;
+        });
+
+        // Test automatique au chargement
+        setTimeout(() => {
+            console.log('Test automatique: scroll vers collections');
+            scrollToSection('collections');
+        }, 2000);
+    </script>
+</body>
+</html>
