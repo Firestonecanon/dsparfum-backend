@@ -49,757 +49,376 @@ async function initializeDatabase() {
       )
     `);
     
-    console.log('✅ PostgreSQL connecté et table clients créée');
-    return true;
-  } catch (err) {
-    console.error('❌ Erreur PostgreSQL:', err.message);
-    return false;
+    console.log('✅ Table clients PostgreSQL créée ou mise à jour');
+    
+    // Compter les clients existants
+    const result = await pool.query('SELECT COUNT(*) as count FROM clients');
+    console.log(`📊 Base de données initialisée - ${result.rows[0].count} clients enregistrés`);
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'initialisation de la base de données:', error);
+    throw error;
   }
 }
 
-// Initialiser la base au démarrage
+// Initialiser la base de données au démarrage
 await initializeDatabase();
 
+// === Configuration Express ===
 const app = express();
+const port = process.env.PORT || 10000;
 
-// Configuration CORS plus permissive
-const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://dsparfum.fr',
-      'https://www.dsparfum.fr',
-      'https://admin.dsparfum.fr',
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:4173',
-      'https://dsparfum.onrender.com',
-      'https://ds-parfum.onrender.com',
-      'https://ds-parfum-admin.onrender.com'
-    ];
-    
-    // En développement, accepter toutes les origines
-    if (process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-      return;
-    }
-    
-    // En production, vérifier l'origine
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('⚠️ Origine bloquée par CORS:', origin);
-      callback(new Error('Non autorisé par CORS'));
-    }
-  },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+// === Configuration Stripe ===
+let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  console.log('✅ Stripe configuré');
+} catch (error) {
+  console.error('❌ Erreur configuration Stripe:', error);
+}
+
+// === Middleware ===
+app.use(cors({
+  origin: ['https://dsparfum.fr', 'https://www.dsparfum.fr', 'http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
+}));
 
-app.use(cors(corsOptions));
+// Middleware pour les webhooks Stripe (avant express.json())
+app.use('/stripe-webhook', express.raw({ type: 'application/json' }), stripeWebhook);
 
-// Ajout de headers de sécurité
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// === Middleware de logging ===
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
-
-// Création de la table clients
-// Fonction pour créer ou mettre à jour la table clients
-const setupDatabase = () => {
-  return new Promise((resolve, reject) => {
-    // Créer la table si elle n'existe pas
-    db.run(`CREATE TABLE IF NOT EXISTS clients (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      email TEXT,
-      phone TEXT,
-      address TEXT,
-      subject TEXT,
-      message TEXT,
-      cart_data TEXT,
-      total REAL,
-      promo TEXT,
-      paymentMethod TEXT,
-      source TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, (err) => {
-      if (err) {
-        console.error('❌ Erreur création table clients:', err);
-        reject(err);
-        return;
-      }
-      console.log('✅ Table clients créée ou existante');
-      resolve();
-    });
+// === Route de test ===
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '✅ D&S Parfum Backend PostgreSQL actif !', 
+    version: '2.0.0',
+    database: 'PostgreSQL',
+    timestamp: new Date().toISOString() 
   });
-};
+});
 
-// Exécuter la configuration de la base de données
-setupDatabase()
-  .then(() => {
-    // Compter le nombre de clients
-    db.get('SELECT COUNT(*) as count FROM clients', (err, result) => {
-      if (err) {
-        console.error('❌ Erreur comptage clients:', err);
-      } else {
-        console.log(`✅ Base de données OK - ${result.count} clients enregistrés`);
-      }
-    });
-  })
-  .catch(err => {
-    console.error('❌ Erreur configuration base de données:', err);
-  });
-
-// Route pour enregistrer un client
-app.post('/api/clients', (req, res) => {
-  console.log('📦 Réception données client:', JSON.stringify(req.body, null, 2));
-  
+// === Route de santé ===
+app.get('/health', async (req, res) => {
   try {
-    const {
-      name = '',
-      email = '',
-      phone = '',
-      address = '',
-      subject = '',
-      message = '',
-      paymentMethod = '',
-      source = '',
-      orderId = '',
-      cart = [],
-      total = '',
-      promo = null,
-      timestamp = Date.now()
-    } = req.body;
-
-    let cleanTotal = 0;
-    if (typeof total === 'string') {
-      cleanTotal = parseFloat(total.replace('€', '').trim());
-    } else if (typeof total === 'number') {
-      cleanTotal = total;
-    }
-
-    const cleanCart = cart.map(item => ({
-      ...item,
-      price: parseFloat(item.price.toString().replace('€', '').trim())
-    }));
-
-    const fullMessage = `
-      ${message}
-      Commande #${orderId}
-      Total: ${cleanTotal}€
-      Promo: ${promo || 'Aucune'}
-      Date: ${new Date(timestamp).toLocaleString('fr-FR')}
-    `.trim();
-
-    console.log('💾 Sauvegarde des données nettoyées:', {
-      name, email, phone, address, 
-      cart: cleanCart,
-      total: cleanTotal
-    });
-
-    const query = `INSERT INTO clients (
-      name, email, phone, address, subject, message, 
-      cart_data, total, promo, paymentMethod, source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    const cartData = Array.isArray(cleanCart) ? JSON.stringify(cleanCart) : null;
+    // Test de connexion PostgreSQL
+    const result = await pool.query('SELECT NOW() as server_time, COUNT(*) as client_count FROM clients');
     
-    const params = [
-      name, 
-      email, 
-      phone, 
-      address, 
-      subject || `Commande du ${new Date().toLocaleDateString('fr-FR')}`,
-      fullMessage,
-      cartData,
-      cleanTotal,
-      promo,
-      paymentMethod || 'website',
-      source || 'cart'
-    ];
-
-    db.run(query, params, function(err) {
-      if (err) {
-        console.error('❌ Erreur SQL:', err);
-        return res.status(500).json({ 
-          success: false, 
-          error: err.message,
-          details: 'Erreur lors de l\'enregistrement en base de données'
-        });
-      }
-
-      const insertId = this.lastID;
-      console.log('✅ Client enregistré avec succès, ID:', insertId);
-
-      db.get('SELECT * FROM clients WHERE id = ?', [insertId], (err, row) => {
-        if (err) {
-          console.error('❌ Erreur vérification insertion:', err);
-          return res.status(500).json({ 
-            success: false, 
-            error: 'Erreur lors de la vérification de l\'insertion'
-          });
-        }
-
-        if (!row) {
-          console.error('❌ Client non trouvé après insertion!');
-          return res.status(500).json({ 
-            success: false, 
-            error: 'Client non trouvé après insertion'
-          });
-        }
-
-        console.log('✅ Données client vérifiées:', row);
-        res.json({ success: true, id: insertId });
-      });
+    res.json({
+      status: 'healthy',
+      database: 'PostgreSQL connected',
+      server_time: result.rows[0].server_time,
+      clients_count: result.rows[0].client_count,
+      uptime: process.uptime()
     });
   } catch (error) {
-    console.error('❌ Erreur traitement:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      details: 'Erreur lors du traitement des données'
+    console.error('❌ Health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error.message
     });
   }
 });
 
-  // Route pour lister les clients
-app.get('/api/clients', (req, res) => {
-  db.all('SELECT * FROM clients ORDER BY created_at DESC', [], (err, rows) => {
-    if (err) {
-      console.error('❌ Erreur lors de la récupération des clients:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Erreur lors de la récupération des clients'
-      });
+// === Route de contact PostgreSQL ===
+app.post('/api/contact', async (req, res) => {
+  console.log('📨 Nouveau contact reçu:', req.body);
+  
+  try {
+    const { name, email, phone = '', address = '', subject = '', message = '', cart = [], total = 0, promo = '' } = req.body;
+    
+    // Validation des données requises
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Nom, email et message sont requis' });
     }
     
-    // Parser les données du panier pour chaque client
-    const processedRows = rows.map(row => {
-      const processedRow = { ...row };
-      
-      if (processedRow.cart_data) {
-        try {
-          processedRow.cart = JSON.parse(processedRow.cart_data);
-        } catch (e) {
-          console.error(`❌ Erreur parsing cart_data pour client ${row.id}:`, e);
-          processedRow.cart = null;
-        }
-      } else {
-        processedRow.cart = null;
-      }
-      
-      return processedRow;
+    // Préparer les données pour PostgreSQL
+    const cartData = Array.isArray(cart) ? JSON.stringify(cart) : '';
+    const totalAmount = parseFloat(total) || 0;
+    
+    const query = `
+      INSERT INTO clients (name, email, phone, address, subject, message, cart_data, total_amount, promo_code, source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    
+    const values = [
+      name,
+      email,
+      phone,
+      address,
+      subject,
+      message,
+      cartData,
+      totalAmount,
+      promo,
+      'contact_form'
+    ];
+    
+    const result = await pool.query(query, values);
+    const newClient = result.rows[0];
+    
+    console.log('✅ Client enregistré PostgreSQL:', newClient);
+    
+    res.json({
+      success: true,
+      message: 'Message envoyé avec succès !',
+      clientId: newClient.id,
+      data: newClient
     });
     
-    console.log(`✅ ${processedRows.length} clients récupérés`);
-    res.json({ 
-      success: true, 
-      data: processedRows 
+  } catch (error) {
+    console.error('❌ Erreur enregistrement contact PostgreSQL:', error);
+    res.status(500).json({
+      error: 'Erreur interne du serveur',
+      details: error.message
     });
-  });
+  }
 });
 
-// Route pour servir la page admin
+// === Routes Admin PostgreSQL ===
 app.get('/admin', (req, res) => {
-  // Servir la page admin depuis le fichier HTML
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  try {
+    const adminHtml = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
+    res.send(adminHtml);
+  } catch (error) {
+    console.error('❌ Erreur lecture admin.html:', error);
+    res.status(500).send('Erreur chargement interface admin');
+  }
 });
 
-// Route d'information pour l'API admin
-app.get('/api/admin', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API Admin D&S Parfum',
-    version: '1.0.0',
-    endpoints: {
-      'GET /api/admin/clients': 'Récupérer tous les clients',
-      'POST /api/admin/clients': 'Créer un nouveau client',
-      'PUT /api/admin/clients/:id': 'Mettre à jour un client',
-      'DELETE /api/admin/clients/:id': 'Supprimer un client',
-      'GET /api/admin/export': 'Exporter les données clients en CSV'
-    },
-    admin_url: 'https://api.dsparfum.fr/admin'
-  });
-});
-
-// Routes admin pour la gestion des clients
 app.get('/api/admin/clients', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM clients ORDER BY created_at DESC');
-    const rows = result.rows;
+    const clients = result.rows;
     
-    // Parser les données du panier pour chaque client
-    const processedRows = rows.map(row => {
-      const processedRow = { ...row };
-      
-      if (processedRow.cart_data) {
-        try {
-          processedRow.cart = JSON.parse(processedRow.cart_data);
-        } catch (e) {
-          console.error(`❌ Erreur parsing cart_data pour client ${row.id}:`, e);
-          processedRow.cart = null;
-        }
-      } else {
-        processedRow.cart = null;
-      }
-      
-      return processedRow;
-    });
+    console.log(`📊 ${clients.length} clients récupérés de PostgreSQL`);
+    res.json(clients);
     
-    console.log(`✅ ${processedRows.length} clients récupérés pour admin`);
-    res.json({ 
-      success: true, 
-      clients: processedRows 
-    });
-  } catch (err) {
-    console.error('❌ Erreur lors de la récupération des clients:', err);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Erreur lors de la récupération des clients'
-    });
-  }
-});
-
-// Route admin pour créer un nouveau client
-app.post('/api/admin/clients', (req, res) => {
-  const { name, email, phone, source, notes } = req.body;
-  
-  const query = `INSERT INTO clients (
-    name, email, phone, source, message
-  ) VALUES (?, ?, ?, ?, ?)`;
-  
-  const params = [name, email, phone, source || 'manual', notes || ''];
-  
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('❌ Erreur création client admin:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: err.message
-      });
-    }
-    
-    console.log('✅ Client créé via admin, ID:', this.lastID);
-    res.json({ success: true, id: this.lastID });
-  });
-});
-
-// Route admin pour modifier un client
-app.put('/api/admin/clients/:id', (req, res) => {
-  const { name, email, phone, source, notes } = req.body;
-  const clientId = req.params.id;
-  
-  const query = `UPDATE clients SET 
-    name = ?, email = ?, phone = ?, source = ?, message = ?
-    WHERE id = ?`;
-  
-  const params = [name, email, phone, source || 'manual', notes || '', clientId];
-  
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('❌ Erreur modification client admin:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: err.message
-      });
-    }
-    
-    console.log('✅ Client modifié via admin, ID:', clientId);
-    res.json({ success: true, id: clientId });
-  });
-});
-
-// Route admin pour supprimer un client
-app.delete('/api/admin/clients/:id', (req, res) => {
-  const clientId = req.params.id;
-  
-  db.run('DELETE FROM clients WHERE id = ?', [clientId], function(err) {
-    if (err) {
-      console.error('❌ Erreur suppression client admin:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: err.message
-      });
-    }
-    
-    console.log('✅ Client supprimé via admin, ID:', clientId);
-    res.json({ success: true, deleted: this.changes });
-  });
-});
-
-// Route admin pour exporter les données (CSV et JSON)
-app.get('/api/admin/export', (req, res) => {
-  const { format = 'csv', filename } = req.query;
-  
-  db.all('SELECT * FROM clients ORDER BY created_at DESC', [], (err, rows) => {
-    if (err) {
-      console.error('❌ Erreur export données:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Erreur lors de l\'export'
-      });
-    }
-    
-    // Parser les données du panier pour chaque client
-    const processedRows = rows.map(row => {
-      const processedRow = { ...row };
-      
-      if (processedRow.cart_data) {
-        try {
-          const cart = JSON.parse(processedRow.cart_data);
-          processedRow.cart_items = cart.map(item => `${item.name} (${item.quantity}x)`).join('; ');
-          processedRow.cart_total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        } catch (e) {
-          console.error(`❌ Erreur parsing cart_data pour client ${row.id}:`, e);
-          processedRow.cart_items = '';
-          processedRow.cart_total = 0;
-        }
-      } else {
-        processedRow.cart_items = '';
-        processedRow.cart_total = 0;
-      }
-      
-      return processedRow;
-    });
-    
-    console.log(`✅ Export ${format} de ${processedRows.length} clients`);
-    
-    if (format === 'csv') {
-      // Export CSV
-      const csvHeaders = [
-        'ID', 'Nom', 'Email', 'Téléphone', 'Adresse', 'Sujet', 
-        'Message', 'Mode Paiement', 'Source', 'Articles Panier', 
-        'Total Panier', 'Date Création'
-      ];
-      
-      const csvRows = processedRows.map(row => [
-        row.id,
-        row.name || '',
-        row.email || '',
-        row.phone || '',
-        row.address || '',
-        row.subject || '',
-        (row.message || '').replace(/"/g, '""'),
-        row.paymentMethod || '',
-        row.source || '',
-        (row.cart_items || '').replace(/"/g, '""'),
-        row.cart_total || 0,
-        new Date(row.created_at).toLocaleDateString('fr-FR')
-      ]);
-      
-      const csvContent = [
-        csvHeaders.map(h => `"${h}"`).join(','),
-        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
-      
-      const csvFilename = filename || `dsparfum-clients-${new Date().toISOString().split('T')[0]}.csv`;
-      
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${csvFilename}"`);
-      res.send('\uFEFF' + csvContent); // BOM pour Excel
-      
-    } else {
-      // Export JSON
-      const jsonFilename = filename || `dsparfum-clients-${new Date().toISOString().split('T')[0]}.json`;
-      
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="${jsonFilename}"`);
-      res.json({
-        exportDate: new Date().toISOString(),
-        totalClients: processedRows.length,
-        format: 'json',
-        clients: processedRows
-      });
-    }
-  });
-});
-
-// Route admin pour les statistiques avancées
-app.get('/api/admin/stats', (req, res) => {
-  const queries = {
-    total: 'SELECT COUNT(*) as count FROM clients',
-    today: `SELECT COUNT(*) as count FROM clients WHERE date(created_at) = date('now')`,
-    week: `SELECT COUNT(*) as count FROM clients WHERE created_at >= datetime('now', '-7 days')`,
-    month: `SELECT COUNT(*) as count FROM clients WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`,
-    sources: 'SELECT source, COUNT(*) as count FROM clients GROUP BY source',
-    byMonth: `SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count 
-              FROM clients 
-              WHERE created_at >= datetime('now', '-12 months')
-              GROUP BY strftime('%Y-%m', created_at) 
-              ORDER BY month`
-  };
-  
-  const stats = {};
-  let completed = 0;
-  const totalQueries = Object.keys(queries).length;
-  
-  Object.entries(queries).forEach(([key, query]) => {
-    db.all(query, [], (err, rows) => {
-      if (err) {
-        console.error(`❌ Erreur stats ${key}:`, err);
-        stats[key] = key === 'sources' || key === 'byMonth' ? [] : 0;
-      } else {
-        if (key === 'sources' || key === 'byMonth') {
-          stats[key] = rows;
-        } else {
-          stats[key] = rows[0]?.count || 0;
-        }
-      }
-      
-      completed++;
-      if (completed === totalQueries) {
-        console.log('✅ Statistiques calculées:', stats);
-        res.json({
-          success: true,
-          stats: {
-            ...stats,
-            lastUpdate: new Date().toISOString()
-          }
-        });
-      }
-    });
-  });
-});
-
-// Route pour recevoir les messages de contact
-app.post('/api/contact', async (req, res) => {
-  console.log('📨 Nouveau message de contact reçu:', req.body);
-  
-  const { name, email, phone, message, address, paymentMethod, subject } = req.body;
-  
-  // Validation des champs obligatoires
-  if (!name || !email || !message) {
-    console.log('❌ Champs obligatoires manquants');
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Nom, email et message sont obligatoires' 
-    });
-  }
-
-  try {
-    const result = await pool.query(`
-      INSERT INTO clients (name, email, phone, address, subject, message, paymentmethod, source, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-      RETURNING id
-    `, [
-      name,
-      email,
-      phone || null,
-      address || null,
-      subject || 'Contact D&S Parfum',
-      message,
-      paymentMethod || null,
-      'contact_form'
-    ]);
-    
-    const clientId = result.rows[0].id;
-    console.log('✅ Contact enregistré avec ID:', clientId);
-    
-    res.json({ 
-      success: true, 
-      id: clientId,
-      message: 'Contact enregistré avec succès'
-    });
-  } catch (err) {
-    console.error('❌ Erreur insertion contact:', err);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Erreur lors de l\'enregistrement'
-    });
-  }
-});
-
-// Route pour supprimer un client
-app.delete('/api/clients/:id', (req, res) => {
-  const clientId = req.params.id;
-
-  db.run('DELETE FROM clients WHERE id = ?', [clientId], function(err) {
-    if (err) {
-      console.error('Erreur lors de la suppression du client:', err.message);
-      return res.status(500).json({ error: 'Erreur lors de la suppression du client.' });
-    }
-
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Client non trouvé.' });
-    }
-
-    res.json({ message: 'Client supprimé avec succès.' });
-  });
-});
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_local_development');
-const PORT = process.env.PORT || 3001;
-
-// Vérifier si on utilise une clé factice (mode simulation)
-const isSimulationMode = (process.env.STRIPE_SECRET_KEY || '').includes('dummy') || 
-                         (process.env.STRIPE_SECRET_KEY || '').includes('sk_test_dummy');
-
-console.log(`🔑 Mode Stripe: ${isSimulationMode ? 'SIMULATION (clé factice)' : 'RÉEL'}`);
-
-// Stripe webhook
-app.use('/api', stripeWebhook);
-
-// Route de test
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'Backend D&S Parfum opérationnel! 🌸' });
-});
-
-// Route racine pour éviter les erreurs 404
-app.get('/', (req, res) => {
-  res.json({
-    service: 'D&S Parfum Backend API',
-    status: 'opérationnel',
-    version: '1.0.0',
-    endpoints: {
-      health: '/api/health',
-      clients: '/api/clients',
-      contact: '/api/contact',
-      admin: '/api/admin',
-      stripe: '/api/create-checkout-session'
-    },
-    frontend: 'https://dsparfum.fr'
-  });
-});
-
-// Route favicon pour éviter les erreurs CSP
-app.get('/favicon.ico', (req, res) => {
-  res.status(204).end(); // No Content
-});
-
-// Route pour créer une session de paiement Stripe
-app.post('/api/create-checkout-session', async (req, res) => {
-  try {
-    const { cart, customerInfo } = req.body;
-
-    if (!cart || !Array.isArray(cart) || cart.length === 0) {
-      return res.status(400).json({ error: 'Panier vide ou invalide' });
-    }
-
-    if (!customerInfo || !customerInfo.email) {
-      return res.status(400).json({ error: 'Email client requis' });
-    }
-
-    console.log('🛒 Contenu du panier reçu:', JSON.stringify(cart, null, 2));
-    
-    // Mode simulation si clé factice
-    if (isSimulationMode) {
-      console.log('🎭 Mode SIMULATION activé - création d\'une fausse session Stripe');
-      
-      // Calculer le total pour la simulation
-      const total = cart.reduce((sum, item) => {
-        const price = parseFloat(item.price);
-        const quantity = parseInt(item.quantity) || 1;
-        return sum + (price * quantity);
-      }, 0);
-      
-      // Retourner une URL de simulation
-      const simulationUrl = `http://localhost:5173/?payment=simulation&total=${total}&email=${encodeURIComponent(customerInfo.email)}`;
-      
-      console.log('✅ Session simulation créée - redirection vers:', simulationUrl);
-      return res.json({ url: simulationUrl });
-    }
-    
-    const lineItems = cart.map(item => {
-      console.log(`📦 Traitement de l'article: ${item.name}`);
-      
-      const price = parseFloat(item.price);
-      if (isNaN(price) || price <= 0) {
-        throw new Error(`Prix invalide pour l'article ${item.name}: ${item.price}`);
-      }
-      
-      const productData = {
-        name: item.ref || 'Référence inconnue',
-        images: item.image ? [item.image] : [],
-        description: item.ref ? `Réf: ${item.ref}` : 'Produit D&S Parfum'
-      };
-
-      console.log(`📝 Product data pour ${item.name}:`, JSON.stringify(productData, null, 2));
-
-      const lineItem = {
-        price_data: {
-          currency: 'eur',
-          product_data: productData,
-          unit_amount: Math.round(price * 100),
-        },
-        quantity: parseInt(item.quantity) || 1,
-      };
-      
-      console.log(`✨ Line item créé pour ${item.name}:`, JSON.stringify(lineItem, null, 2));
-      return lineItem;
-    });
-
-    let baseUrl = process.env.NODE_ENV === 'production'
-      ? 'https://dsparfum.fr'
-      : 'http://localhost:5173';
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      customer_email: customerInfo.email,
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['FR', 'BE', 'CH', 'LU', 'MC'],
-      },
-      metadata: {
-        customer_name: customerInfo.name || '',
-        customer_phone: customerInfo.phone || '',
-        order_source: 'dsparfum_website'
-      },
-      success_url: `${baseUrl}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/?payment=cancelled`,
-    });
-
-    console.log('✅ Session Stripe créée:', session.id);
-    console.log('💰 Montant total:', lineItems.reduce((sum, item) => sum + (item.price_data.unit_amount * item.quantity), 0) / 100, '€');
-
-    res.json({ url: session.url });
   } catch (error) {
-    console.error('❌ Erreur création session Stripe:', error);
-    res.status(500).json({ 
-      error: 'Erreur lors de la création du paiement',
-      details: error.message 
-    });
+    console.error('❌ Erreur récupération clients PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur récupération des clients' });
   }
 });
 
-// Route pour récupérer les détails d'une session de paiement
-app.get('/api/checkout-session/:sessionId', async (req, res) => {
+// Modifier un client
+app.put('/api/admin/clients/:id', async (req, res) => {
+  const clientId = req.params.id;
+  const { name, email, phone, address, subject, message, total_amount, promo_code } = req.body;
+  
   try {
-    const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-    res.json(session);
+    const query = `
+      UPDATE clients 
+      SET name = $1, email = $2, phone = $3, address = $4, subject = $5, 
+          message = $6, total_amount = $7, promo_code = $8, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $9
+      RETURNING *
+    `;
+    
+    const values = [name, email, phone, address, subject, message, total_amount, promo_code, clientId];
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Client non trouvé' });
+    }
+    
+    console.log('✅ Client modifié PostgreSQL:', result.rows[0]);
+    res.json({ success: true, client: result.rows[0] });
+    
   } catch (error) {
-    console.error('❌ Erreur récupération session:', error);
-    res.status(500).json({ error: 'Session introuvable' });
+    console.error('❌ Erreur modification client PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur modification du client' });
   }
 });
 
-// Démarrage du serveur
-app.listen(PORT, () => {
-  console.log('\n=== D&S Parfum Backend ===');
-  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-  console.log(`📡 API locale: http://localhost:${PORT}/api`);
-  console.log(`🌐 API production: https://dsparfum-backend-go.onrender.com`);
-  console.log(`💾 Base de données: ${dbPath}`);
-  console.log(`🔑 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Configuré' : '❌ Non configuré'}`);
-  console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
-  console.log('========================\n');
-
-  db.get('SELECT COUNT(*) as count FROM clients', (err, row) => {
-    if (err) {
-      console.error('❌ Erreur accès base de données:', err.message);
-    } else {
-      console.log(`✅ Base de données OK - ${row.count} clients enregistrés`);
+// Supprimer un client
+app.delete('/api/admin/clients/:id', async (req, res) => {
+  const clientId = req.params.id;
+  
+  try {
+    const result = await pool.query('DELETE FROM clients WHERE id = $1 RETURNING *', [clientId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Client non trouvé' });
     }
+    
+    console.log('🗑️ Client supprimé PostgreSQL:', result.rows[0]);
+    res.json({ success: true, message: 'Client supprimé avec succès' });
+    
+  } catch (error) {
+    console.error('❌ Erreur suppression client PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur suppression du client' });
+  }
+});
+
+// Rechercher des clients
+app.get('/api/admin/search', async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q) {
+    return res.status(400).json({ error: 'Paramètre de recherche requis' });
+  }
+  
+  try {
+    const query = `
+      SELECT * FROM clients 
+      WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1 OR message ILIKE $1
+      ORDER BY created_at DESC
+    `;
+    
+    const searchTerm = `%${q}%`;
+    const result = await pool.query(query, [searchTerm]);
+    
+    console.log(`🔍 Recherche "${q}": ${result.rows.length} résultats`);
+    res.json(result.rows);
+    
+  } catch (error) {
+    console.error('❌ Erreur recherche PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur lors de la recherche' });
+  }
+});
+
+// === Routes Stripe PostgreSQL ===
+app.post('/api/create-payment-intent', async (req, res) => {
+  try {
+    const { amount, currency = 'eur', metadata = {} } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Montant invalide' });
+    }
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe utilise les centimes
+      currency,
+      metadata,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+    
+    console.log('💳 Payment Intent créé:', paymentIntent.id);
+    res.json({ clientSecret: paymentIntent.client_secret });
+    
+  } catch (error) {
+    console.error('❌ Erreur création Payment Intent:', error);
+    res.status(500).json({ error: 'Erreur création du paiement' });
+  }
+});
+
+// === Route de statistiques PostgreSQL ===
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    // Statistiques générales
+    const totalResult = await pool.query('SELECT COUNT(*) as total FROM clients');
+    const totalClients = parseInt(totalResult.rows[0].total);
+    
+    // Clients récents (dernières 24h)
+    const recentResult = await pool.query(
+      'SELECT COUNT(*) as recent FROM clients WHERE created_at > NOW() - INTERVAL \'24 hours\''
+    );
+    const recentClients = parseInt(recentResult.rows[0].recent);
+    
+    // Chiffre d'affaires total
+    const revenueResult = await pool.query('SELECT SUM(total_amount) as revenue FROM clients WHERE total_amount > 0');
+    const totalRevenue = parseFloat(revenueResult.rows[0].revenue) || 0;
+    
+    // Clients par source
+    const sourceResult = await pool.query(
+      'SELECT source, COUNT(*) as count FROM clients GROUP BY source ORDER BY count DESC'
+    );
+    const clientsBySource = sourceResult.rows;
+    
+    const stats = {
+      totalClients,
+      recentClients,
+      totalRevenue: totalRevenue.toFixed(2),
+      clientsBySource,
+      lastUpdate: new Date().toISOString()
+    };
+    
+    console.log('📊 Statistiques générées:', stats);
+    res.json(stats);
+    
+  } catch (error) {
+    console.error('❌ Erreur génération statistiques PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur génération des statistiques' });
+  }
+});
+
+// === Route backup PostgreSQL ===
+app.get('/api/admin/backup', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM clients ORDER BY created_at DESC');
+    const clients = result.rows;
+    
+    const backupData = {
+      exportDate: new Date().toISOString(),
+      totalClients: clients.length,
+      clients: clients
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="dsparfum_backup_${new Date().toISOString().split('T')[0]}.json"`);
+    res.json(backupData);
+    
+    console.log(`💾 Backup généré: ${clients.length} clients`);
+    
+  } catch (error) {
+    console.error('❌ Erreur génération backup PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur génération du backup' });
+  }
+});
+
+// === Route de test compteur PostgreSQL ===
+app.get('/api/visit-count', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT COUNT(*) as count FROM clients');
+    const count = parseInt(result.rows[0].count);
+    
+    res.json({ count });
+  } catch (error) {
+    console.error('❌ Erreur comptage visites PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur comptage des visites' });
+  }
+});
+
+// === Middleware de gestion d'erreurs ===
+app.use((err, req, res, next) => {
+  console.error('❌ Erreur serveur:', err);
+  res.status(500).json({ 
+    error: 'Erreur interne du serveur',
+    message: err.message 
   });
+});
+
+// === Démarrage du serveur ===
+app.listen(port, () => {
+  console.log(`🚀 Serveur D&S Parfum PostgreSQL démarré sur le port ${port}`);
+  console.log(`🌐 URL: http://localhost:${port}`);
+  console.log(`🐘 Base de données: PostgreSQL`);
+  console.log(`⏰ Démarrage: ${new Date().toISOString()}`);
+});
+
+// === Gestion propre de l'arrêt ===
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Arrêt du serveur...');
+  await pool.end();
+  console.log('🐘 Connexions PostgreSQL fermées');
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 Signal SIGTERM reçu, arrêt du serveur...');
+  await pool.end();
+  console.log('🐘 Connexions PostgreSQL fermées');
+  process.exit(0);
 });
