@@ -552,12 +552,40 @@ app.delete('/api/clients/:id', (req, res) => {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_local_development');
 const PORT = process.env.PORT || 3001;
 
+// Vérifier si on utilise une clé factice (mode simulation)
+const isSimulationMode = (process.env.STRIPE_SECRET_KEY || '').includes('dummy') || 
+                         (process.env.STRIPE_SECRET_KEY || '').includes('sk_test_dummy');
+
+console.log(`🔑 Mode Stripe: ${isSimulationMode ? 'SIMULATION (clé factice)' : 'RÉEL'}`);
+
 // Stripe webhook
 app.use('/api', stripeWebhook);
 
 // Route de test
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend D&S Parfum opérationnel! 🌸' });
+});
+
+// Route racine pour éviter les erreurs 404
+app.get('/', (req, res) => {
+  res.json({
+    service: 'D&S Parfum Backend API',
+    status: 'opérationnel',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      clients: '/api/clients',
+      contact: '/api/contact',
+      admin: '/api/admin',
+      stripe: '/api/create-checkout-session'
+    },
+    frontend: 'https://dsparfum.fr'
+  });
+});
+
+// Route favicon pour éviter les erreurs CSP
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // No Content
 });
 
 // Route pour créer une session de paiement Stripe
@@ -574,6 +602,24 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 
     console.log('🛒 Contenu du panier reçu:', JSON.stringify(cart, null, 2));
+    
+    // Mode simulation si clé factice
+    if (isSimulationMode) {
+      console.log('🎭 Mode SIMULATION activé - création d\'une fausse session Stripe');
+      
+      // Calculer le total pour la simulation
+      const total = cart.reduce((sum, item) => {
+        const price = parseFloat(item.price);
+        const quantity = parseInt(item.quantity) || 1;
+        return sum + (price * quantity);
+      }, 0);
+      
+      // Retourner une URL de simulation
+      const simulationUrl = `http://localhost:5173/?payment=simulation&total=${total}&email=${encodeURIComponent(customerInfo.email)}`;
+      
+      console.log('✅ Session simulation créée - redirection vers:', simulationUrl);
+      return res.json({ url: simulationUrl });
+    }
     
     const lineItems = cart.map(item => {
       console.log(`📦 Traitement de l'article: ${item.name}`);

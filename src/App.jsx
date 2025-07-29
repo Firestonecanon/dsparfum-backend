@@ -26,6 +26,34 @@ import { parfumsLuxe } from './data/parfumsLuxe';
 import { parfumsLuxury } from './data/parfumsLuxury';
 import { parfumsEnfant, parfumsCreation } from './data/parfumsEnfantCreation';
 
+// Fonction pour détecter les paramètres URL
+function useURLParams() {
+  const [urlParams, setUrlParams] = useState(new URLSearchParams());
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setUrlParams(params);
+    
+    // Gestion des paramètres de simulation de paiement
+    if (params.get('payment') === 'simulation') {
+      const total = params.get('total');
+      const email = params.get('email');
+      
+      console.log('🎭 Mode simulation de paiement détecté:', { total, email });
+      
+      // Afficher une notification de simulation
+      setTimeout(() => {
+        alert(`🎭 SIMULATION PAIEMENT\n\nTotal: ${total}€\nEmail: ${decodeURIComponent(email)}\n\nCeci est une simulation pour le développement.`);
+        
+        // Nettoyer l'URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 1000);
+    }
+  }, []);
+  
+  return urlParams;
+}
+
 // Fonction utilitaire pour le smooth scroll cross-browser optimisée mobile
 function smoothScrollTo(targetPosition, duration = 600) {
   const startPosition = window.pageYOffset;
@@ -610,6 +638,38 @@ function App() {
   
   if (paymentStatus === 'cancelled') {
     return <PaymentCancelled />;
+  }
+  
+  // Gestion de la simulation de paiement (mode développement)
+  if (paymentStatus === 'simulation') {
+    const total = urlParams.get('total');
+    const email = urlParams.get('email');
+    
+    useEffect(() => {
+      console.log('🎭 Mode simulation de paiement détecté:', { total, email });
+      
+      // Afficher une notification de simulation
+      const timer = setTimeout(() => {
+        alert(`🎭 SIMULATION PAIEMENT RÉUSSIE!\n\nTotal: ${total}€\nEmail: ${decodeURIComponent(email || '')}\n\nCeci est une simulation pour le développement.\nLe paiement réel nécessite une clé Stripe valide.`);
+        
+        // Nettoyer l'URL et rediriger vers la page d'accueil
+        window.history.replaceState({}, document.title, window.location.pathname);
+        window.location.reload();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }, [total, email]);
+    
+    // Afficher temporairement un message de chargement
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">🎭 Simulation de paiement</h2>
+          <p className="text-gray-600">Traitement de la simulation...</p>
+        </div>
+      </div>
+    );
   }
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
