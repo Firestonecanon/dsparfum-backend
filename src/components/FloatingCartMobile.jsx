@@ -29,7 +29,7 @@ const FloatingCartMobile = ({ onClick }) => {
               {totalItems} article{totalItems > 1 ? 's' : ''}
             </div>
             <div className="text-sm opacity-90">
-              {totalPrice.toFixed(2)}€
+              {totalPrice.toFixed(2)}ï¿½
             </div>
           </div>
         </div>
@@ -40,7 +40,8 @@ const FloatingCartMobile = ({ onClick }) => {
           </div>
         </div>
       </button>
-      <style jsx>{`
+      <style>
+        {`
         @keyframes bounce-once {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }
@@ -48,7 +49,8 @@ const FloatingCartMobile = ({ onClick }) => {
         .animate-bounce-once {
           animation: bounce-once 0.6s ease-in-out;
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

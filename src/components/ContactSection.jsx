@@ -548,13 +548,6 @@ export default function ContactSection() {
             </div>
           </div>
         </div>
-        <style jsx>{`
-          /* Glassmorphism premium + encart commande */
-          .contact-glass {
-            box-shadow: 0 8px 48px 0 #FFD70033, 0 1px 0 #fff2 inset;
-            border: 2.5px solid #FFD70044;
-          }
-        `}</style>
       </div>
     </section>
   );

@@ -427,8 +427,10 @@ app.delete('/api/admin/clients/:id', (req, res) => {
   });
 });
 
-// Route admin pour exporter les données
+// Route admin pour exporter les données (CSV et JSON)
 app.get('/api/admin/export', (req, res) => {
+  const { format = 'csv', filename } = req.query;
+  
   db.all('SELECT * FROM clients ORDER BY created_at DESC', [], (err, rows) => {
     if (err) {
       console.error('❌ Erreur export données:', err);
@@ -444,26 +446,117 @@ app.get('/api/admin/export', (req, res) => {
       
       if (processedRow.cart_data) {
         try {
-          processedRow.cart = JSON.parse(processedRow.cart_data);
+          const cart = JSON.parse(processedRow.cart_data);
+          processedRow.cart_items = cart.map(item => `${item.name} (${item.quantity}x)`).join('; ');
+          processedRow.cart_total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         } catch (e) {
           console.error(`❌ Erreur parsing cart_data pour client ${row.id}:`, e);
-          processedRow.cart = null;
+          processedRow.cart_items = '';
+          processedRow.cart_total = 0;
         }
       } else {
-        processedRow.cart = null;
+        processedRow.cart_items = '';
+        processedRow.cart_total = 0;
       }
       
       return processedRow;
     });
     
-    console.log(`✅ Export de ${processedRows.length} clients`);
+    console.log(`✅ Export ${format} de ${processedRows.length} clients`);
     
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="clients_${new Date().toISOString().split('T')[0]}.json"`);
-    res.json({
-      exportDate: new Date().toISOString(),
-      totalClients: processedRows.length,
-      clients: processedRows
+    if (format === 'csv') {
+      // Export CSV
+      const csvHeaders = [
+        'ID', 'Nom', 'Email', 'Téléphone', 'Adresse', 'Sujet', 
+        'Message', 'Mode Paiement', 'Source', 'Articles Panier', 
+        'Total Panier', 'Date Création'
+      ];
+      
+      const csvRows = processedRows.map(row => [
+        row.id,
+        row.name || '',
+        row.email || '',
+        row.phone || '',
+        row.address || '',
+        row.subject || '',
+        (row.message || '').replace(/"/g, '""'),
+        row.paymentMethod || '',
+        row.source || '',
+        (row.cart_items || '').replace(/"/g, '""'),
+        row.cart_total || 0,
+        new Date(row.created_at).toLocaleDateString('fr-FR')
+      ]);
+      
+      const csvContent = [
+        csvHeaders.map(h => `"${h}"`).join(','),
+        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      const csvFilename = filename || `dsparfum-clients-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${csvFilename}"`);
+      res.send('\uFEFF' + csvContent); // BOM pour Excel
+      
+    } else {
+      // Export JSON
+      const jsonFilename = filename || `dsparfum-clients-${new Date().toISOString().split('T')[0]}.json`;
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${jsonFilename}"`);
+      res.json({
+        exportDate: new Date().toISOString(),
+        totalClients: processedRows.length,
+        format: 'json',
+        clients: processedRows
+      });
+    }
+  });
+});
+
+// Route admin pour les statistiques avancées
+app.get('/api/admin/stats', (req, res) => {
+  const queries = {
+    total: 'SELECT COUNT(*) as count FROM clients',
+    today: `SELECT COUNT(*) as count FROM clients WHERE date(created_at) = date('now')`,
+    week: `SELECT COUNT(*) as count FROM clients WHERE created_at >= datetime('now', '-7 days')`,
+    month: `SELECT COUNT(*) as count FROM clients WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`,
+    sources: 'SELECT source, COUNT(*) as count FROM clients GROUP BY source',
+    byMonth: `SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count 
+              FROM clients 
+              WHERE created_at >= datetime('now', '-12 months')
+              GROUP BY strftime('%Y-%m', created_at) 
+              ORDER BY month`
+  };
+  
+  const stats = {};
+  let completed = 0;
+  const totalQueries = Object.keys(queries).length;
+  
+  Object.entries(queries).forEach(([key, query]) => {
+    db.all(query, [], (err, rows) => {
+      if (err) {
+        console.error(`❌ Erreur stats ${key}:`, err);
+        stats[key] = key === 'sources' || key === 'byMonth' ? [] : 0;
+      } else {
+        if (key === 'sources' || key === 'byMonth') {
+          stats[key] = rows;
+        } else {
+          stats[key] = rows[0]?.count || 0;
+        }
+      }
+      
+      completed++;
+      if (completed === totalQueries) {
+        console.log('✅ Statistiques calculées:', stats);
+        res.json({
+          success: true,
+          stats: {
+            ...stats,
+            lastUpdate: new Date().toISOString()
+          }
+        });
+      }
     });
   });
 });
