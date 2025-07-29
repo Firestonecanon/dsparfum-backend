@@ -443,7 +443,72 @@ app.get('/api/admin/export', (req, res) => {
       clients: processedRows
     });
   });
-});// Route pour supprimer un client
+});
+
+// Route pour recevoir les messages de contact
+app.post('/api/contact', (req, res) => {
+  console.log('📨 Nouveau message de contact reçu:', req.body);
+  
+  const { name, email, phone, message, address, paymentMethod, subject } = req.body;
+  
+  // Validation des champs obligatoires
+  if (!name || !email || !message) {
+    console.log('❌ Champs obligatoires manquants');
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Nom, email et message sont obligatoires' 
+    });
+  }
+
+  // Insérer le contact dans la base de données
+  const contactData = {
+    name,
+    email,
+    phone: phone || null,
+    address: address || null,
+    subject: subject || 'Contact D&S Parfum',
+    message,
+    payment_method: paymentMethod || null,
+    source: 'contact_form',
+    created_at: new Date().toISOString()
+  };
+
+  const stmt = db.prepare(`
+    INSERT INTO clients (name, email, phone, address, subject, message, paymentMethod, source, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run([
+    contactData.name,
+    contactData.email,
+    contactData.phone,
+    contactData.address,
+    contactData.subject,
+    contactData.message,
+    contactData.payment_method,
+    contactData.source,
+    contactData.created_at
+  ], function(err) {
+    if (err) {
+      console.error('❌ Erreur insertion contact:', err);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erreur lors de l\'enregistrement'
+      });
+    }
+    
+    console.log('✅ Contact enregistré avec ID:', this.lastID);
+    res.json({ 
+      success: true, 
+      id: this.lastID,
+      message: 'Contact enregistré avec succès'
+    });
+  });
+
+  stmt.finalize();
+});
+
+// Route pour supprimer un client
 app.delete('/api/clients/:id', (req, res) => {
   const clientId = req.params.id;
 
@@ -461,7 +526,7 @@ app.delete('/api/clients/:id', (req, res) => {
   });
 });
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const PORT = process.env.PORT || 3001;
 
 // Stripe webhook
