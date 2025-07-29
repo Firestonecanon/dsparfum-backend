@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CLIENTS_URL } from '../config/api';
 
 export const useClientSync = () => {
   const [loading, setLoading] = useState(false);
@@ -9,7 +10,10 @@ export const useClientSync = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/clients', {
+      console.log('🔗 useClientSync - URL utilisée:', CLIENTS_URL);
+      console.log('🔗 useClientSync - Données envoyées:', clientData);
+      
+      const response = await fetch(CLIENTS_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -18,13 +22,17 @@ export const useClientSync = () => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🔗 useClientSync - Erreur response:', response.status, errorText);
         throw new Error('Erreur lors de la création du client');
       }
 
       const result = await response.json();
+      console.log('🔗 useClientSync - Résultat:', result);
       setLoading(false);
       return result;
     } catch (err) {
+      console.error('🔗 useClientSync - Erreur catch:', err);
       setError(err.message);
       setLoading(false);
       throw err;
@@ -36,7 +44,10 @@ export const useClientSync = () => {
     setError(null);
     
     try {
-      const response = await fetch(`/api/clients/${clientId}/status`, {
+      const updateUrl = `${CLIENTS_URL}/${clientId}/status`;
+      console.log('🔗 useClientSync - Update URL utilisée:', updateUrl);
+      
+      const response = await fetch(updateUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -45,13 +56,17 @@ export const useClientSync = () => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🔗 useClientSync - Erreur update:', response.status, errorText);
         throw new Error('Erreur lors de la mise à jour du statut');
       }
 
       const result = await response.json();
+      console.log('🔗 useClientSync - Update résultat:', result);
       setLoading(false);
       return result;
     } catch (err) {
+      console.error('🔗 useClientSync - Erreur update catch:', err);
       setError(err.message);
       setLoading(false);
       throw err;

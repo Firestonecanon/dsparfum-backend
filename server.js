@@ -588,6 +588,11 @@ app.get('/favicon.ico', (req, res) => {
   res.status(204).end(); // No Content
 });
 
+// Route admin à la racine pour redirection
+app.get('/admin', (req, res) => {
+  res.redirect('https://dsparfum.netlify.app/admin');
+});
+
 // Route pour créer une session de paiement Stripe
 app.post('/api/create-checkout-session', async (req, res) => {
   try {

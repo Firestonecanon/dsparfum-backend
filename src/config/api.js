@@ -5,10 +5,10 @@ const API_CONFIG = {
     BASE_URL: 'http://localhost:3001',
     API_URL: 'http://localhost:3001/api'
   },
-  // En production, utiliser Render
+  // En production, utiliser votre domaine personnalisé
   production: {
-    BASE_URL: 'https://dsparfum-backend-go.onrender.com',
-    API_URL: 'https://dsparfum-backend-go.onrender.com/api'
+    BASE_URL: 'https://api.dsparfum.fr',
+    API_URL: 'https://api.dsparfum.fr/api'
   }
 };
 
@@ -33,6 +33,8 @@ if (isDevelopment) {
   console.log('  - CLIENTS_URL:', CLIENTS_URL);
   console.log('  - ADMIN_CLIENTS_URL:', ADMIN_CLIENTS_URL);
   console.log('  - ADMIN_EXPORT_URL:', ADMIN_EXPORT_URL);
+  console.log('  - CHECKOUT_URL:', CHECKOUT_URL);
 } else {
   console.log('🚀 Mode production - Backend Render:', API_BASE_URL);
+  console.log('  - CHECKOUT_URL:', CHECKOUT_URL);
 }

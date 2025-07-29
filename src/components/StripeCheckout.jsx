@@ -35,6 +35,10 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
       }
       return newItem;
     });
+    
+    console.log('🛒 StripeCheckout - URL utilisée:', CHECKOUT_URL);
+    console.log('🛒 StripeCheckout - Données envoyées:', { cart: cartFiltered, total, customerInfo });
+    
     fetch(CHECKOUT_URL, {
       method: 'POST',
       headers: {
@@ -46,17 +50,24 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
         customerInfo
       })
     })
-      .then(res => res.json())
+      .then(res => {
+        console.log('🛒 StripeCheckout - Réponse reçue, status:', res.status);
+        return res.json();
+      })
       .then(data => {
+        console.log('🛒 StripeCheckout - Données reçues:', data);
         if (data.url) {
+          console.log('🛒 StripeCheckout - Redirection vers:', data.url);
           window.location.href = data.url;
         } else {
+          console.error('🛒 StripeCheckout - Pas d\'URL dans la réponse:', data);
           setError('Erreur lors de la création de la session Stripe.');
           setProcessing(false);
           if (setIsWaitingStripe) setIsWaitingStripe(false);
         }
       })
-      .catch(() => {
+      .catch(error => {
+        console.error('🛒 StripeCheckout - Erreur fetch:', error);
         setError('Erreur de connexion au serveur.');
         setProcessing(false);
         if (setIsWaitingStripe) setIsWaitingStripe(false);
