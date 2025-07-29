@@ -37,6 +37,88 @@ if (process.env.NODE_ENV !== 'production') {
 // Log du chemin de la base de données
 console.log(`📂 Utilisation de la base de données: ${dbPath}`);
 
+// Fonction d'initialisation de la base de données
+function initializeDatabase() {
+  return new Promise((resolve, reject) => {
+    const tempDb = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error('❌ Erreur création DB:', err.message);
+        reject(err);
+        return;
+      }
+      
+      tempDb.serialize(() => {
+        // Créer la table clients
+        tempDb.run(`
+          CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT NOT NULL,
+            phone TEXT,
+            address TEXT,
+            subject TEXT,
+            message TEXT,
+            paymentMethod TEXT,
+            source TEXT DEFAULT 'contact_form',
+            cart_data TEXT,
+            total_amount REAL DEFAULT 0,
+            promo_code TEXT,
+            order_id TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `, (err) => {
+          if (err) {
+            console.error('❌ Erreur création table:', err.message);
+            reject(err);
+            return;
+          }
+          console.log('✅ Table clients créée');
+          
+          // Insérer des données d'exemple
+          const stmt = tempDb.prepare(`
+            INSERT INTO clients (name, email, phone, subject, message, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `);
+          
+          const clients = [
+            ['Déborah Costanzo', 'deborah.costanzo@yahoo.fr', '0123456789', 'Commande D&S Parfum', 'Commande de parfums premium', 'contact_form', '2025-07-29T03:19:47.056Z'],
+            ['Samir BELAID', 'pizzas.tofsof@yahoo.fr', '0987654321', 'Demande information', 'Information sur les parfums mixtes', 'contact_form', '2025-07-29T02:48:10.102Z'],
+            ['Test Fix JSX', 'test@jsx.com', '0123456789', 'Contact D&S Parfum', 'Test après correction JSX', 'contact_form', '2025-07-29T05:30:00.000Z']
+          ];
+          
+          clients.forEach(client => {
+            stmt.run(client);
+          });
+          
+          stmt.finalize();
+          
+          tempDb.close((err) => {
+            if (err) {
+              console.error('❌ Erreur fermeture DB:', err.message);
+              reject(err);
+            } else {
+              console.log('🎉 Base de données initialisée avec succès');
+              resolve();
+            }
+          });
+        });
+      });
+    });
+  });
+}
+
+// Vérifier si la base de données existe et l'initialiser si nécessaire
+if (!fs.existsSync(dbPath)) {
+  console.log('🚀 Base de données manquante, initialisation...');
+  initializeDatabase().then(() => {
+    console.log('🎯 Initialisation terminée, démarrage du serveur...');
+  }).catch(err => {
+    console.error('❌ Erreur initialisation:', err);
+    process.exit(1);
+  });
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ Erreur de connexion à la base de données:', err);
