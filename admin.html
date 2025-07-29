@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - DS Parfum</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        .admin-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        .clients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .clients-table th,
+        .clients-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .clients-table th {
+            background: #667eea;
+            color: white;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 Administration DS Parfum</h1>
+        
+        <div class="admin-section">
+            <h2>📊 Gestion des Clients</h2>
+            <button class="btn" onclick="loadClients()">Charger les clients</button>
+            <button class="btn" onclick="exportCSV()">Exporter CSV</button>
+            <button class="btn" onclick="window.open('https://dsparfum.netlify.app', '_blank')">Voir le site</button>
+            
+            <div id="clients-container">
+                <p class="loading">Cliquez sur "Charger les clients" pour voir la liste</p>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>🔧 API Endpoints</h2>
+            <p><strong>Base URL:</strong> https://api.dsparfum.fr</p>
+            <ul>
+                <li><code>GET /api/admin/clients</code> - Liste des clients</li>
+                <li><code>POST /api/admin/clients</code> - Créer un client</li>
+                <li><code>PUT /api/admin/clients/:id</code> - Modifier un client</li>
+                <li><code>DELETE /api/admin/clients/:id</code> - Supprimer un client</li>
+                <li><code>GET /api/admin/export</code> - Export CSV</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function loadClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '<p class="loading">Chargement...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/clients');
+                const data = await response.json();
+                
+                if (data.success && data.clients) {
+                    let html = '<table class="clients-table">';
+                    html += '<tr><th>ID</th><th>Email</th><th>Total commandes</th><th>Date création</th><th>Actions</th></tr>';
+                    
+                    data.clients.forEach(client => {
+                        html += `<tr>
+                            <td>${client.id}</td>
+                            <td>${client.email}</td>
+                            <td>${client.total_orders || 0}</td>
+                            <td>${new Date(client.created_at).toLocaleDateString('fr-FR')}</td>
+                            <td>
+                                <button class="btn" onclick="deleteClient(${client.id})" style="background: #e53e3e;">
+                                    Supprimer
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p>Aucun client trouvé</p>';
+                }
+            } catch (error) {
+                container.innerHTML = '<p style="color: red;">Erreur: ' + error.message + '</p>';
+            }
+        }
+
+        async function exportCSV() {
+            try {
+                window.open('/api/admin/export', '_blank');
+            } catch (error) {
+                alert('Erreur lors de l\'export: ' + error.message);
+            }
+        }
+
+        async function deleteClient(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
+                try {
+                    const response = await fetch(`/api/admin/clients/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Client supprimé avec succès');
+                        loadClients(); // Recharger la liste
+                    } else {
+                        alert('Erreur: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

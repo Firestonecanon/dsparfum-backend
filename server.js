@@ -300,10 +300,10 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
-// Route de redirection pour l'admin
+// Route pour servir la page admin
 app.get('/admin', (req, res) => {
-  // Rediriger vers la page admin du frontend
-  res.redirect('https://dsparfum.netlify.app/admin');
+  // Servir la page admin depuis le fichier HTML
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // Route d'information pour l'API admin
@@ -319,7 +319,7 @@ app.get('/api/admin', (req, res) => {
       'DELETE /api/admin/clients/:id': 'Supprimer un client',
       'GET /api/admin/export': 'Exporter les données clients en CSV'
     },
-    frontend_url: 'https://dsparfum.netlify.app/admin'
+    frontend_url: 'https://dsparfum.netlify.app/#/admin'
   });
 });
 
@@ -590,7 +590,7 @@ app.get('/favicon.ico', (req, res) => {
 
 // Route admin à la racine pour redirection
 app.get('/admin', (req, res) => {
-  res.redirect('https://dsparfum.netlify.app/admin');
+  res.redirect('https://dsparfum.netlify.app/#/admin');
 });
 
 // Route pour créer une session de paiement Stripe
