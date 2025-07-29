@@ -103,7 +103,7 @@
             container.innerHTML = '<p class="loading">Chargement...</p>';
             
             try {
-                const response = await fetch('/api/admin/clients');
+                const response = await fetch('https://api.dsparfum.fr/api/admin/clients');
                 const data = await response.json();
                 
                 if (data.success && data.clients) {
@@ -136,7 +136,7 @@
 
         async function exportCSV() {
             try {
-                window.open('/api/admin/export', '_blank');
+                window.open('https://api.dsparfum.fr/api/admin/export', '_blank');
             } catch (error) {
                 alert('Erreur lors de l\'export: ' + error.message);
             }
@@ -145,7 +145,7 @@
         async function deleteClient(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
                 try {
-                    const response = await fetch(`/api/admin/clients/${id}`, {
+                    const response = await fetch(`https://api.dsparfum.fr/api/admin/clients/${id}`, {
                         method: 'DELETE'
                     });
                     const data = await response.json();
