@@ -216,13 +216,208 @@ app.post('/api/contact', async (req, res) => {
 
 // === Routes Admin PostgreSQL ===
 app.get('/admin', (req, res) => {
-  try {
-    const adminHtml = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8');
-    res.send(adminHtml);
-  } catch (error) {
-    console.error('❌ Erreur lecture admin.html:', error);
-    res.status(500).send('Erreur chargement interface admin');
-  }
+  const adminHtml = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - DS Parfum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: #2d3748; color: white; border-radius: 8px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #4299e1; color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: bold; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-danger { background: #f56565; color: white; }
+        .search-box { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 300px; }
+        .clients-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .clients-table th, .clients-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .clients-table th { background: #f8f9fa; font-weight: bold; }
+        .clients-table tr:hover { background: #f8f9fa; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { background: #fed7d7; color: #c53030; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .success { background: #c6f6d5; color: #2f855a; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 DS Parfum - Administration</h1>
+            <p>Gestion des clients et commandes PostgreSQL</p>
+        </div>
+
+        <div id="stats" class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalClients">-</div>
+                <div>Total Clients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="recentClients">-</div>
+                <div>Nouveaux (24h)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRevenue">-</div>
+                <div>Chiffre d'affaires</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="loadClients()">🔄 Actualiser</button>
+            <button class="btn btn-success" onclick="downloadBackup()">💾 Télécharger Backup</button>
+            <input type="text" class="search-box" id="searchBox" placeholder="Rechercher un client..." onkeyup="searchClients()">
+        </div>
+
+        <div id="message"></div>
+
+        <div id="clientsContainer">
+            <div class="loading">Chargement des clients...</div>
+        </div>
+    </div>
+
+    <script>
+        let allClients = [];
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalClients').textContent = stats.totalClients || 0;
+                document.getElementById('recentClients').textContent = stats.recentClients || 0;
+                document.getElementById('totalRevenue').textContent = stats.totalRevenue + '€' || '0€';
+            } catch (error) {
+                console.error('Erreur chargement stats:', error);
+            }
+        }
+
+        async function loadClients() {
+            const container = document.getElementById('clientsContainer');
+            container.innerHTML = '<div class="loading">Chargement des clients...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/clients');
+                if (!response.ok) throw new Error('Erreur réseau');
+                
+                allClients = await response.json();
+                displayClients(allClients);
+                await loadStats();
+                
+                showMessage('Clients chargés avec succès!', 'success');
+            } catch (error) {
+                container.innerHTML = '<div class="error">Erreur lors du chargement des clients: ' + error.message + '</div>';
+                console.error('Erreur:', error);
+            }
+        }
+
+        function displayClients(clients) {
+            const container = document.getElementById('clientsContainer');
+            
+            if (!clients || clients.length === 0) {
+                container.innerHTML = '<div class="error">Aucun client trouvé</div>';
+                return;
+            }
+
+            let html = '<table class="clients-table"><thead><tr>';
+            html += '<th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Message</th><th>Total</th><th>Source</th><th>Date</th><th>Actions</th>';
+            html += '</tr></thead><tbody>';
+
+            clients.forEach(client => {
+                const date = new Date(client.created_at).toLocaleDateString('fr-FR');
+                const total = client.total_amount ? parseFloat(client.total_amount).toFixed(2) + '€' : '-';
+                const source = client.source || 'contact_form';
+                
+                html += '<tr>';
+                html += '<td>' + client.id + '</td>';
+                html += '<td>' + (client.name || '-') + '</td>';
+                html += '<td>' + (client.email || '-') + '</td>';
+                html += '<td>' + (client.phone || '-') + '</td>';
+                html += '<td>' + (client.message ? client.message.substring(0, 50) + '...' : '-') + '</td>';
+                html += '<td>' + total + '</td>';
+                html += '<td>' + source + '</td>';
+                html += '<td>' + date + '</td>';
+                html += '<td><button class="btn btn-danger" onclick="deleteClient(' + client.id + ')">🗑️</button></td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function searchClients() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            if (!searchTerm) {
+                displayClients(allClients);
+                return;
+            }
+
+            const filtered = allClients.filter(client => 
+                (client.name && client.name.toLowerCase().includes(searchTerm)) ||
+                (client.email && client.email.toLowerCase().includes(searchTerm)) ||
+                (client.phone && client.phone.toLowerCase().includes(searchTerm)) ||
+                (client.message && client.message.toLowerCase().includes(searchTerm))
+            );
+
+            displayClients(filtered);
+        }
+
+        async function deleteClient(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce client?')) return;
+            
+            try {
+                const response = await fetch('/api/admin/clients/' + id, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('Client supprimé avec succès!', 'success');
+                    loadClients();
+                } else {
+                    throw new Error('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                showMessage('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function downloadBackup() {
+            try {
+                const response = await fetch('/api/admin/backup');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'dsparfum_backup_' + new Date().toISOString().split('T')[0] + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                showMessage('Backup téléchargé avec succès!', 'success');
+            } catch (error) {
+                showMessage('Erreur lors du téléchargement: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '<div class="' + type + '">' + text + '</div>';
+            setTimeout(() => messageDiv.innerHTML = '', 5000);
+        }
+
+        // Charger les clients au démarrage
+        loadClients();
+        
+        // Actualiser toutes les 30 secondes
+        setInterval(loadClients, 30000);
+    </script>
+</body>
+</html>`;
+  
+  res.send(adminHtml);
 });
 
 // Route alias pour compatibilité frontend
