@@ -225,6 +225,21 @@ app.get('/admin', (req, res) => {
   }
 });
 
+// Route alias pour compatibilité frontend
+app.get('/api/clients', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM clients ORDER BY created_at DESC');
+    const clients = result.rows;
+    
+    console.log(`📊 ${clients.length} clients récupérés de PostgreSQL`);
+    res.json(clients);
+    
+  } catch (error) {
+    console.error('❌ Erreur récupération clients PostgreSQL:', error);
+    res.status(500).json({ error: 'Erreur récupération des clients' });
+  }
+});
+
 app.get('/api/admin/clients', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM clients ORDER BY created_at DESC');
@@ -236,6 +251,74 @@ app.get('/api/admin/clients', async (req, res) => {
   } catch (error) {
     console.error('❌ Erreur récupération clients PostgreSQL:', error);
     res.status(500).json({ error: 'Erreur récupération des clients' });
+  }
+});
+
+// Route POST alias pour compatibilité frontend (commandes)
+app.post('/api/clients', async (req, res) => {
+  console.log('📦 Nouvelle commande reçue via /api/clients:', req.body);
+  
+  try {
+    const { 
+      name, 
+      email, 
+      phone = '', 
+      address = '', 
+      subject = '', 
+      message = '', 
+      paymentMethod = '',
+      cart = [], 
+      total = 0, 
+      promo = '' 
+    } = req.body;
+    
+    // Validation des données requises
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Nom et email sont requis' });
+    }
+    
+    // Préparer les données pour PostgreSQL
+    const cartData = Array.isArray(cart) ? JSON.stringify(cart) : '';
+    const totalAmount = parseFloat(total) || 0;
+    
+    const query = `
+      INSERT INTO clients (name, email, phone, address, subject, message, paymentmethod, cart_data, total_amount, promo_code, source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+    
+    const values = [
+      name,
+      email,
+      phone,
+      address,
+      subject || 'Nouvelle commande',
+      message || 'Commande passée via le panier',
+      paymentMethod,
+      cartData,
+      totalAmount,
+      promo,
+      'cart_order'
+    ];
+    
+    const result = await pool.query(query, values);
+    const newClient = result.rows[0];
+    
+    console.log('✅ Commande enregistrée PostgreSQL:', newClient);
+    
+    res.json({
+      success: true,
+      message: 'Commande enregistrée avec succès !',
+      clientId: newClient.id,
+      data: newClient
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur enregistrement commande PostgreSQL:', error);
+    res.status(500).json({
+      error: 'Erreur interne du serveur',
+      details: error.message
+    });
   }
 });
 
