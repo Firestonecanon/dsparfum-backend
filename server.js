@@ -48,7 +48,7 @@ function initializeDatabase() {
       }
       
       tempDb.serialize(() => {
-        // Créer la table clients
+        // Créer la table clients vide
         tempDb.run(`
           CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,32 +73,14 @@ function initializeDatabase() {
             reject(err);
             return;
           }
-          console.log('✅ Table clients créée');
-          
-          // Insérer des données d'exemple
-          const stmt = tempDb.prepare(`
-            INSERT INTO clients (name, email, phone, subject, message, source, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `);
-          
-          const clients = [
-            ['Déborah Costanzo', 'deborah.costanzo@yahoo.fr', '0123456789', 'Commande D&S Parfum', 'Commande de parfums premium', 'contact_form', '2025-07-29T03:19:47.056Z'],
-            ['Samir BELAID', 'pizzas.tofsof@yahoo.fr', '0987654321', 'Demande information', 'Information sur les parfums mixtes', 'contact_form', '2025-07-29T02:48:10.102Z'],
-            ['Test Fix JSX', 'test@jsx.com', '0123456789', 'Contact D&S Parfum', 'Test après correction JSX', 'contact_form', '2025-07-29T05:30:00.000Z']
-          ];
-          
-          clients.forEach(client => {
-            stmt.run(client);
-          });
-          
-          stmt.finalize();
+          console.log('✅ Table clients créée (vide)');
           
           tempDb.close((err) => {
             if (err) {
               console.error('❌ Erreur fermeture DB:', err.message);
               reject(err);
             } else {
-              console.log('🎉 Base de données initialisée avec succès');
+              console.log('🎉 Base de données initialisée (prête pour les vrais clients)');
               resolve();
             }
           });
