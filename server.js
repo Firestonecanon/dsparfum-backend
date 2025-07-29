@@ -3,8 +3,8 @@ import Stripe from 'stripe';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import stripeWebhook from './stripeWebhook.js';
-import sqlite3pkg from 'sqlite3';
-const sqlite3 = sqlite3pkg.verbose();
+import pkg from 'pg';
+const { Pool } = pkg;
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -15,105 +15,50 @@ const __dirname = path.dirname(__filename);
 // Configuration des variables d'environnement en premier
 dotenv.config();
 
-// === Configuration de la base de données SQLite ===
-const dbPath = process.env.NODE_ENV === 'production'
-  ? path.join(process.cwd(), 'clients.db')  // Chemin pour Render
-  : path.join(process.cwd(), 'data', 'clients.db'); // Chemin local pour développement
+// === Configuration de la base de données PostgreSQL ===
+console.log(`🐘 Configuration PostgreSQL...`);
 
-const dbDir = path.dirname(dbPath);
-
-// En développement, on crée le dossier data si nécessaire
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-      console.log(`✅ Dossier de données créé: ${dbDir}`);
-    }
-  } catch (err) {
-    console.warn(`⚠️ Note: ${err.message}`);
-  }
-}
-
-// Log du chemin de la base de données
-console.log(`📂 Utilisation de la base de données: ${dbPath}`);
-
-// Fonction d'initialisation de la base de données
-function initializeDatabase() {
-  return new Promise((resolve, reject) => {
-    const tempDb = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error('❌ Erreur création DB:', err.message);
-        reject(err);
-        return;
-      }
-      
-      tempDb.serialize(() => {
-        // Créer la table clients vide
-        tempDb.run(`
-          CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            email TEXT NOT NULL,
-            phone TEXT,
-            address TEXT,
-            subject TEXT,
-            message TEXT,
-            paymentMethod TEXT,
-            source TEXT DEFAULT 'contact_form',
-            cart_data TEXT,
-            total_amount REAL DEFAULT 0,
-            promo_code TEXT,
-            order_id TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          )
-        `, (err) => {
-          if (err) {
-            console.error('❌ Erreur création table:', err.message);
-            reject(err);
-            return;
-          }
-          console.log('✅ Table clients créée (vide)');
-          
-          tempDb.close((err) => {
-            if (err) {
-              console.error('❌ Erreur fermeture DB:', err.message);
-              reject(err);
-            } else {
-              console.log('🎉 Base de données initialisée (prête pour les vrais clients)');
-              resolve();
-            }
-          });
-        });
-      });
-    });
-  });
-}
-
-// Vérifier si la base de données existe et l'initialiser si nécessaire
-if (!fs.existsSync(dbPath)) {
-  console.log('🚀 Base de données manquante, initialisation...');
-  initializeDatabase().then(() => {
-    console.log('🎯 Initialisation terminée, démarrage du serveur...');
-  }).catch(err => {
-    console.error('❌ Erreur initialisation:', err);
-    process.exit(1);
-  });
-}
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Erreur de connexion à la base de données:', err);
-    console.error('Détails:', err.message);
-    console.error('Chemin DB:', dbPath);
-    return;
-  }
-  console.log(`✅ Base de données connectée: ${dbPath}`);
-  
-  // Activer les foreign keys et le mode WAL pour de meilleures performances
-  db.run('PRAGMA foreign_keys = ON');
-  db.run('PRAGMA journal_mode = WAL');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/dsparfum',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Test de connexion et initialisation des tables
+async function initializeDatabase() {
+  try {
+    console.log('🔗 Connexion à PostgreSQL...');
+    
+    // Créer la table clients si elle n'existe pas
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        name TEXT,
+        email TEXT NOT NULL,
+        phone TEXT,
+        address TEXT,
+        subject TEXT,
+        message TEXT,
+        paymentmethod TEXT,
+        source TEXT DEFAULT 'contact_form',
+        cart_data TEXT,
+        total_amount DECIMAL DEFAULT 0,
+        promo_code TEXT,
+        order_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('✅ PostgreSQL connecté et table clients créée');
+    return true;
+  } catch (err) {
+    console.error('❌ Erreur PostgreSQL:', err.message);
+    return false;
+  }
+}
+
+// Initialiser la base au démarrage
+await initializeDatabase();
 
 const app = express();
 
@@ -388,15 +333,10 @@ app.get('/api/admin', (req, res) => {
 });
 
 // Routes admin pour la gestion des clients
-app.get('/api/admin/clients', (req, res) => {
-  db.all('SELECT * FROM clients ORDER BY created_at DESC', [], (err, rows) => {
-    if (err) {
-      console.error('❌ Erreur lors de la récupération des clients:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Erreur lors de la récupération des clients'
-      });
-    }
+app.get('/api/admin/clients', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM clients ORDER BY created_at DESC');
+    const rows = result.rows;
     
     // Parser les données du panier pour chaque client
     const processedRows = rows.map(row => {
@@ -421,7 +361,13 @@ app.get('/api/admin/clients', (req, res) => {
       success: true, 
       clients: processedRows 
     });
-  });
+  } catch (err) {
+    console.error('❌ Erreur lors de la récupération des clients:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erreur lors de la récupération des clients'
+    });
+  }
 });
 
 // Route admin pour créer un nouveau client
@@ -626,7 +572,7 @@ app.get('/api/admin/stats', (req, res) => {
 });
 
 // Route pour recevoir les messages de contact
-app.post('/api/contact', (req, res) => {
+app.post('/api/contact', async (req, res) => {
   console.log('📨 Nouveau message de contact reçu:', req.body);
   
   const { name, email, phone, message, address, paymentMethod, subject } = req.body;
@@ -640,52 +586,37 @@ app.post('/api/contact', (req, res) => {
     });
   }
 
-  // Insérer le contact dans la base de données
-  const contactData = {
-    name,
-    email,
-    phone: phone || null,
-    address: address || null,
-    subject: subject || 'Contact D&S Parfum',
-    message,
-    payment_method: paymentMethod || null,
-    source: 'contact_form',
-    created_at: new Date().toISOString()
-  };
-
-  const stmt = db.prepare(`
-    INSERT INTO clients (name, email, phone, address, subject, message, paymentMethod, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run([
-    contactData.name,
-    contactData.email,
-    contactData.phone,
-    contactData.address,
-    contactData.subject,
-    contactData.message,
-    contactData.payment_method,
-    contactData.source,
-    contactData.created_at
-  ], function(err) {
-    if (err) {
-      console.error('❌ Erreur insertion contact:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Erreur lors de l\'enregistrement'
-      });
-    }
+  try {
+    const result = await pool.query(`
+      INSERT INTO clients (name, email, phone, address, subject, message, paymentmethod, source, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+      RETURNING id
+    `, [
+      name,
+      email,
+      phone || null,
+      address || null,
+      subject || 'Contact D&S Parfum',
+      message,
+      paymentMethod || null,
+      'contact_form'
+    ]);
     
-    console.log('✅ Contact enregistré avec ID:', this.lastID);
+    const clientId = result.rows[0].id;
+    console.log('✅ Contact enregistré avec ID:', clientId);
+    
     res.json({ 
       success: true, 
-      id: this.lastID,
+      id: clientId,
       message: 'Contact enregistré avec succès'
     });
-  });
-
-  stmt.finalize();
+  } catch (err) {
+    console.error('❌ Erreur insertion contact:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erreur lors de l\'enregistrement'
+    });
+  }
 });
 
 // Route pour supprimer un client
