@@ -76,8 +76,8 @@
             <h2>📊 Gestion des Clients</h2>
             <button class="btn" onclick="loadClients()">Charger les clients</button>
             <button class="btn" onclick="exportCSV()">Exporter CSV</button>
-            <button class="btn" onclick="window.open('https://dsparfum.netlify.app', '_blank')">Voir le site (Netlify)</button>
             <button class="btn" onclick="window.open('http://localhost:5173', '_blank')" style="background: #38a169;">Voir le site (Local)</button>
+            <button class="btn" onclick="alert('⚠️ Le site Netlify pointe vers un autre domaine.\\nUtilisez le site local : http://localhost:5173')" style="background: #e53e3e;">Info Netlify</button>
             
             <div id="clients-container">
                 <p class="loading">Cliquez sur "Charger les clients" pour voir la liste</p>
