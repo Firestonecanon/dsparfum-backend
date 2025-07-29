@@ -857,6 +857,103 @@ app.get('/api/admin/search', async (req, res) => {
 });
 
 // === Routes Stripe PostgreSQL ===
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    const { cart, total, customerInfo } = req.body;
+    
+    console.log('💳 Nouvelle session Stripe + enregistrement client:', { total, customerInfo });
+    
+    if (!customerInfo.email) {
+      return res.status(400).json({ error: 'Email client requis' });
+    }
+    
+    if (!cart || cart.length === 0) {
+      return res.status(400).json({ error: 'Panier vide' });
+    }
+    
+    // 1. D'abord enregistrer le client dans PostgreSQL
+    const clientData = {
+      name: customerInfo.name || '',
+      email: customerInfo.email,
+      phone: customerInfo.phone || '',
+      address: customerInfo.address || '',
+      subject: 'Commande Stripe',
+      message: `Commande de ${cart.length} article(s)`,
+      paymentmethod: 'stripe',
+      cart_data: JSON.stringify(cart),
+      total_amount: parseFloat(total) || 0,
+      source: 'stripe_checkout'
+    };
+    
+    const query = `
+      INSERT INTO clients (name, email, phone, address, subject, message, paymentmethod, cart_data, total_amount, source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    
+    const values = [
+      clientData.name,
+      clientData.email,
+      clientData.phone,
+      clientData.address,
+      clientData.subject,
+      clientData.message,
+      clientData.paymentmethod,
+      clientData.cart_data,
+      clientData.total_amount,
+      clientData.source
+    ];
+    
+    const clientResult = await pool.query(query, values);
+    const newClient = clientResult.rows[0];
+    
+    console.log('✅ Client enregistré avant Stripe:', newClient);
+    
+    // 2. Créer la session Stripe
+    const lineItems = cart.map(item => ({
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: item.name,
+          description: item.description || `Parfum ${item.name}`,
+        },
+        unit_amount: Math.round(item.price * 100), // Stripe utilise les centimes
+      },
+      quantity: item.quantity || 1,
+    }));
+    
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      customer_email: customerInfo.email,
+      metadata: {
+        client_id: newClient.id.toString(),
+        total_amount: total.toString(),
+        cart_items: cart.length.toString()
+      },
+      success_url: `${process.env.FRONTEND_URL || 'https://dsparfum.fr'}/payment-success?session_id={CHECKOUT_SESSION_ID}&client_id=${newClient.id}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://dsparfum.fr'}/payment-cancelled`,
+    });
+    
+    console.log('💳 Session Stripe créée:', session.id, 'pour client:', newClient.id);
+    
+    res.json({ 
+      url: session.url,
+      sessionId: session.id,
+      clientId: newClient.id,
+      message: 'Client enregistré et session Stripe créée'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur création session Stripe + client:', error);
+    res.status(500).json({ 
+      error: 'Erreur création session de paiement',
+      details: error.message 
+    });
+  }
+});
+
 app.post('/api/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency = 'eur', metadata = {} } = req.body;
@@ -990,6 +1087,47 @@ app.get('/api/admin/backup', async (req, res) => {
     console.error('❌ Erreur génération backup PostgreSQL:', error);
     res.status(500).json({ error: 'Erreur génération du backup' });
   }
+});
+
+// === Route webhook Stripe pour confirmer les paiements ===
+app.post('/api/stripe-webhook-checkout', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('❌ Erreur signature webhook Stripe:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Gérer les événements Stripe
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    
+    try {
+      const clientId = session.metadata.client_id;
+      
+      if (clientId) {
+        // Mettre à jour le client avec les infos de paiement
+        await pool.query(`
+          UPDATE clients 
+          SET 
+            order_id = $1,
+            paymentmethod = 'stripe_completed',
+            updated_at = CURRENT_TIMESTAMP,
+            message = message || ' - Paiement confirmé'
+          WHERE id = $2
+        `, [session.id, clientId]);
+        
+        console.log('✅ Paiement confirmé pour client:', clientId, 'session:', session.id);
+      }
+    } catch (error) {
+      console.error('❌ Erreur mise à jour paiement:', error);
+    }
+  }
+
+  res.json({ received: true });
 });
 
 // === Route de test compteur PostgreSQL ===
