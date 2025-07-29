@@ -35,21 +35,38 @@ async function initializeDatabase() {
         name TEXT,
         email TEXT NOT NULL,
         phone TEXT,
-        address TEXT,
-        subject TEXT,
-        message TEXT,
-        paymentmethod TEXT,
-        source TEXT DEFAULT 'contact_form',
-        cart_data TEXT,
-        total_amount DECIMAL DEFAULT 0,
-        promo_code TEXT,
-        order_id TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     
-    console.log('✅ Table clients PostgreSQL créée ou mise à jour');
+    console.log('✅ Table clients PostgreSQL créée');
+    
+    // Migration : Ajouter les colonnes manquantes
+    const columnsToAdd = [
+      { name: 'address', type: 'TEXT' },
+      { name: 'subject', type: 'TEXT' },
+      { name: 'message', type: 'TEXT' },
+      { name: 'paymentmethod', type: 'TEXT' },
+      { name: 'source', type: 'TEXT DEFAULT \'contact_form\'' },
+      { name: 'cart_data', type: 'TEXT' },
+      { name: 'total_amount', type: 'DECIMAL DEFAULT 0' },
+      { name: 'promo_code', type: 'TEXT' },
+      { name: 'order_id', type: 'TEXT' },
+      { name: 'updated_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
+    ];
+    
+    console.log('🔄 Migration des colonnes...');
+    for (const column of columnsToAdd) {
+      try {
+        await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS ${column.name} ${column.type}`);
+        console.log(`✅ Colonne ${column.name} ajoutée`);
+      } catch (err) {
+        // Ignorer si la colonne existe déjà
+        if (!err.message.includes('already exists')) {
+          console.log(`⚠️  Erreur colonne ${column.name}:`, err.message);
+        }
+      }
+    }
     
     // Compter les clients existants
     const result = await pool.query('SELECT COUNT(*) as count FROM clients');
