@@ -277,9 +277,36 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Route spéciale MOBILE avec détection User-Agent
+// Route spéciale MOBILE avec détection User-Agent et fallback
 app.get('/admin-mobile.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+  const mobilePath = path.join(__dirname, 'admin-mobile.html');
+  
+  // Vérifier si le fichier existe avant de l'envoyer
+  fs.access(mobilePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.error(`❌ ERREUR: admin-mobile.html introuvable à ${mobilePath}`);
+      // Fallback vers la version desktop si mobile non disponible
+      const desktopPath = path.join(__dirname, 'admin.html');
+      
+      fs.access(desktopPath, fs.constants.F_OK, (err2) => {
+        if (err2) {
+          console.error(`❌ ERREUR: admin.html aussi introuvable à ${desktopPath}`);
+          res.status(500).json({
+            error: 'Fichiers admin introuvables',
+            mobilePath: mobilePath,
+            desktopPath: desktopPath,
+            message: 'ENOENT - Aucun fichier admin disponible'
+          });
+        } else {
+          console.log(`🔄 FALLBACK: Envoi admin.html à la place d'admin-mobile.html`);
+          res.sendFile(desktopPath);
+        }
+      });
+    } else {
+      console.log(`📱 Envoi admin-mobile.html depuis ${mobilePath}`);
+      res.sendFile(mobilePath);
+    }
+  });
 });
 
 // Route de TEST MOBILE (sans CSP)
@@ -340,7 +367,7 @@ app.get('/admin-final.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-final.html'));
 });
 
-// Route intelligente qui détecte mobile et redirige
+// Route intelligente qui détecte mobile et redirige avec gestion d'erreur
 app.get('/admin', (req, res) => {
   console.log(`🔥 Route /admin appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
   
@@ -348,15 +375,49 @@ app.get('/admin', (req, res) => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
   if (isMobile) {
-    console.log(`📱 Mobile détecté → Envoi admin-mobile.html (version complète)`);
+    console.log(`📱 Mobile détecté → Tentative envoi admin-mobile.html`);
     // SUPPRIMER CSP pour mobile
     res.removeHeader('Content-Security-Policy');
     res.removeHeader('X-Content-Security-Policy');
     res.removeHeader('X-WebKit-CSP');
-    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+    
+    const mobilePath = path.join(__dirname, 'admin-mobile.html');
+    
+    // Vérifier l'existence avant envoi
+    fs.access(mobilePath, fs.constants.F_OK, (err) => {
+      if (err) {
+        console.error(`❌ ERREUR /admin mobile: admin-mobile.html introuvable`);
+        // Fallback vers desktop
+        const desktopPath = path.join(__dirname, 'admin.html');
+        res.sendFile(desktopPath, (err2) => {
+          if (err2) {
+            console.error(`❌ ERREUR /admin fallback: admin.html aussi introuvable`);
+            res.status(500).json({
+              error: 'ENOENT - Fichiers admin introuvables',
+              requested: 'admin-mobile.html (mobile)',
+              fallback: 'admin.html (desktop)',
+              directory: __dirname
+            });
+          }
+        });
+      } else {
+        console.log(`✅ Envoi admin-mobile.html depuis ${mobilePath}`);
+        res.sendFile(mobilePath);
+      }
+    });
   } else {
     console.log(`💻 Desktop détecté → Envoi admin.html`);
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    const desktopPath = path.join(__dirname, 'admin.html');
+    res.sendFile(desktopPath, (err) => {
+      if (err) {
+        console.error(`❌ ERREUR /admin desktop: admin.html introuvable`);
+        res.status(500).json({
+          error: 'ENOENT - admin.html introuvable',
+          path: desktopPath,
+          directory: __dirname
+        });
+      }
+    });
   }
 });
 
@@ -409,6 +470,51 @@ app.get('/admin-android', (req, res) => {
   res.removeHeader('X-WebKit-CSP');
   
   res.sendFile(path.join(__dirname, 'admin-android-simple.html'));
+});
+
+// Route de diagnostic pour vérifier l'existence des fichiers
+app.get('/diagnostic-files', (req, res) => {
+  console.log('🔍 Diagnostic des fichiers demandé');
+  
+  const filesToCheck = [
+    'admin.html',
+    'admin-mobile.html', 
+    'index.html',
+    'stripeWebhook.js',
+    'server.js'
+  ];
+  
+  const results = {};
+  
+  filesToCheck.forEach(filename => {
+    try {
+      const filePath = path.join(__dirname, filename);
+      const exists = fs.existsSync(filePath);
+      results[filename] = {
+        exists: exists,
+        path: filePath,
+        status: exists ? '✅ Présent' : '❌ Manquant'
+      };
+      
+      if (exists) {
+        const stats = fs.statSync(filePath);
+        results[filename].size = stats.size;
+        results[filename].modified = stats.mtime;
+      }
+    } catch (error) {
+      results[filename] = {
+        exists: false,
+        error: error.message,
+        status: '❌ Erreur'
+      };
+    }
+  });
+  
+  res.json({
+    timestamp: new Date().toISOString(),
+    directory: __dirname,
+    files: results
+  });
 });
 
 app.get('/admin-emergency', (req, res) => {
