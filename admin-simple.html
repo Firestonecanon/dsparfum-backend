@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Admin DS Parfum - Simple</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 10px; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header { 
+            background: #1a202c; 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+        }
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 20px; 
+            padding: 20px; 
+            background: #f8fafc; 
+        }
+        .stat-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            text-align: center; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stat-number { font-size: 2rem; color: #667eea; font-weight: bold; }
+        .stat-label { color: #4a5568; margin-top: 5px; }
+        .section { padding: 20px; }
+        .btn { 
+            background: #667eea; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+            font-size: 14px;
+        }
+        .btn:hover { background: #5a67d8; }
+        .btn.success { background: #38a169; }
+        .btn.danger { background: #e53e3e; }
+        .clients-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            background: white;
+        }
+        .clients-table th, .clients-table td { 
+            padding: 10px; 
+            text-align: left; 
+            border-bottom: 1px solid #e2e8f0; 
+        }
+        .clients-table th { background: #f7fafc; font-weight: bold; }
+        .loading { 
+            text-align: center; 
+            padding: 40px; 
+            color: #4a5568; 
+        }
+        .status { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+            display: none; 
+        }
+        .status.success { background: #c6f6d5; color: #22543d; }
+        .status.error { background: #fed7d7; color: #742a2a; }
+        .status.info { background: #bee3f8; color: #1a365d; }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
+            .stat-card { padding: 15px; }
+            .stat-number { font-size: 1.5rem; }
+            .section { padding: 10px; }
+            .clients-table { font-size: 12px; }
+            .clients-table th, .clients-table td { padding: 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Administration DS Parfum</h1>
+            <p>Interface simple et efficace</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-clients">-</div>
+                <div class="stat-label">👥 Total Clients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-revenue">-</div>
+                <div class="stat-label">💰 CA Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="recent-clients">-</div>
+                <div class="stat-label">🆕 Nouveaux (7j)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="server-status">🟢</div>
+                <div class="stat-label">🖥️ Statut</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>👥 Gestion des Clients</h2>
+            <div style="margin: 20px 0;">
+                <button class="btn" onclick="loadClients()">🔄 Actualiser</button>
+                <button class="btn success" onclick="exportCSV()">📊 Export CSV</button>
+                <button class="btn danger" onclick="testConnection()">🔗 Test API</button>
+            </div>
+            
+            <div class="status" id="status"></div>
+            
+            <div id="clients-container">
+                <div class="loading">Cliquez sur "Actualiser" pour charger les clients</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allClients = [];
+
+        // Configuration API
+        const API_BASE = 'https://api.dsparfum.fr';
+        
+        // Status display
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => statusDiv.style.display = 'none', 5000);
+        }
+
+        // Test de connexion
+        async function testConnection() {
+            showStatus('🔗 Test de connexion...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/clients`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Connexion API réussie !', 'success');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showStatus(`❌ Erreur connexion: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Chargement des clients
+        async function loadClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '<div class="loading">⏳ Chargement...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/clients`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                let clientsData = Array.isArray(data) ? data : (data.clients || []);
+                
+                if (clientsData.length > 0) {
+                    allClients = clientsData;
+                    updateStatistics();
+                    displayClients();
+                    showStatus(`✅ ${clientsData.length} clients chargés`, 'success');
+                } else {
+                    container.innerHTML = '<div class="loading">📭 Aucun client trouvé</div>';
+                    showStatus('⚠️ Aucun client trouvé', 'info');
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="loading" style="color: red;">❌ Erreur: ${error.message}</div>`;
+                showStatus(`❌ Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        // Mise à jour des statistiques
+        function updateStatistics() {
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const recentClients = allClients.filter(c => new Date(c.created_at) > weekAgo).length;
+            const totalRevenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+
+            document.getElementById('total-clients').textContent = allClients.length;
+            document.getElementById('total-revenue').textContent = totalRevenue.toFixed(0) + '€';
+            document.getElementById('recent-clients').textContent = recentClients;
+        }
+
+        // Affichage des clients
+        function displayClients() {
+            const container = document.getElementById('clients-container');
+            
+            let html = '<table class="clients-table">';
+            html += '<tr><th>ID</th><th>Nom</th><th>Email</th><th>CA</th><th>Date</th></tr>';
+            
+            allClients.slice(0, 20).forEach(client => {
+                const createdDate = new Date(client.created_at);
+                const revenue = client.total_revenue || 0;
+                
+                html += `<tr>
+                    <td><strong>#${client.id}</strong></td>
+                    <td>${client.name || 'N/A'}</td>
+                    <td>${client.email}</td>
+                    <td><strong>${revenue.toFixed(2)}€</strong></td>
+                    <td>${createdDate.toLocaleDateString('fr-FR')}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            
+            if (allClients.length > 20) {
+                html += `<p style="text-align: center; margin-top: 10px; color: #4a5568;">... et ${allClients.length - 20} clients de plus</p>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Export CSV
+        async function exportCSV() {
+            try {
+                showStatus('📁 Export en cours...', 'info');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                window.open(`${API_BASE}/api/admin/export?filename=dsparfum-${timestamp}.csv`, '_blank');
+                showStatus('✅ Export lancé', 'success');
+            } catch (error) {
+                showStatus(`❌ Erreur export: ${error.message}`, 'error');
+            }
+        }
+
+        // Test automatique au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            testConnection().then(success => {
+                if (success) {
+                    loadClients();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
