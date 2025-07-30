@@ -314,6 +314,15 @@ app.get('/admin-test-mobile.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-test-mobile.html'));
 });
 
+// Route de TEST CONNECTIVITÉ MOBILE
+app.get('/test-mobile-fix.html', (req, res) => {
+  console.log('🚀 Page de test mobile demandée');
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy'); 
+  res.removeHeader('X-WebKit-CSP');
+  res.sendFile(path.join(__dirname, 'test-mobile-fix.html'));
+});
+
 // Route de TEST MINIMAL (absolument aucune restriction)
 app.get('/test-minimal.html', (req, res) => {
   // FORCER LA DÉSACTIVATION DE TOUTE CSP
