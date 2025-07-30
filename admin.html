@@ -439,6 +439,80 @@
                 padding: 15px;
             }
             
+            /* === BOUTONS MOBILES === */
+            .mobile-button-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .mobile-button-grid .btn {
+                padding: 12px 8px !important;
+                font-size: 0.85rem !important;
+                text-align: center !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                min-height: 44px; /* Touch target iOS/Android */
+            }
+            
+            /* === BARRE DE RECHERCHE MOBILE === */
+            .filter-group {
+                flex-direction: column !important;
+                gap: 12px !important;
+                align-items: stretch !important;
+                padding: 15px !important;
+            }
+            
+            .filter-group label {
+                font-size: 0.9rem !important;
+                text-align: center !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .filter-group .input-field {
+                width: 100% !important;
+                padding: 12px 15px !important;
+                font-size: 16px !important;
+                border-radius: 8px !important;
+                border: 2px solid rgba(255,255,255,0.3) !important;
+                background: rgba(255,255,255,0.9) !important;
+                color: #1a202c !important;
+            }
+            
+            .filter-group .btn {
+                width: 100% !important;
+                padding: 12px !important;
+                font-size: 1rem !important;
+                border-radius: 8px !important;
+                min-height: 44px !important;
+            }
+            
+            /* === FILTRES AVANCÉS MOBILES === */
+            .advanced-filters {
+                padding: 15px !important;
+            }
+            
+            .advanced-filters > div {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            
+            .advanced-filters .filter-group {
+                background: white !important;
+                padding: 12px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            }
+            
+            .advanced-filters select {
+                padding: 10px !important;
+                font-size: 16px !important;
+                border-radius: 6px !important;
+                min-height: 44px !important;
+            }
+            
             /* === TABLEAU MOBILE AMÉLIORÉ === */
             .table-container {
                 overflow-x: auto;
@@ -638,18 +712,18 @@
         <div class="admin-section">
             <h2>👥 Gestion des Clients - Interface Avancée</h2>
             <div class="controls">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div id="button-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <button class="btn" onclick="loadClients()">🔄 Actualiser</button>
                     <button class="btn success" onclick="exportCSV()">📊 Export CSV</button>
                     <button class="btn warning" onclick="createBackup()">💾 Backup</button>
                     <button class="btn danger" onclick="detectDuplicates()">🔍 Doublons</button>
-                    <button class="btn info" onclick="showAdvancedFilters()">⚙️ Filtres Avancés</button>
-                    <button class="btn info" onclick="showStatisticsModal()">📈 Stats Détaillées</button>
+                    <button class="btn info" onclick="showAdvancedFilters()">⚙️ Filtres</button>
+                    <button class="btn info" onclick="showStatisticsModal()">📈 Stats</button>
                     <button class="btn" onclick="showShortcuts()" style="background: linear-gradient(135deg, #9f7aea 0%, #b794f6 100%); box-shadow: 0 4px 15px rgba(159, 122, 234, 0.3);">⌨️ Raccourcis</button>
                 </div>
                 
                 <!-- Barre de recherche améliorée -->
-                <div class="filter-group" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px;">
+                <div class="filter-group mobile-search" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px;">
                     <label style="font-weight: 700; color: white;">🔍 Recherche Intelligente:</label>
                     <input type="text" class="input-field" id="search-input" placeholder="Nom, email, téléphone..." onkeyup="filterClients()" style="flex: 1;">
                     <button class="btn warning" onclick="clearFilters()" style="padding: 10px 20px;">🗑️ Effacer</button>
@@ -729,6 +803,9 @@
         async function loadClients() {
             const container = document.getElementById('clients-container');
             container.innerHTML = '<p class="loading">⏳ Chargement...</p>';
+            
+            // Adapter l'interface pour mobile
+            adaptMobileInterface();
             
             try {
                 const response = await fetch('https://api.dsparfum.fr/api/admin/clients');
@@ -2143,6 +2220,45 @@
                 displayClients();
             }
         }
+
+        // === ADAPTATION INTERFACE MOBILE ===
+        function adaptMobileInterface() {
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // Adapter la grille des boutons
+                const buttonGrid = document.getElementById('button-grid');
+                if (buttonGrid) {
+                    buttonGrid.className = 'mobile-button-grid';
+                }
+                
+                // Adapter les filtres
+                const filterGroups = document.querySelectorAll('.filter-group');
+                filterGroups.forEach(group => {
+                    group.style.flexDirection = 'column';
+                    group.style.gap = '12px';
+                    group.style.alignItems = 'stretch';
+                });
+                
+                // Adapter les inputs
+                const inputs = document.querySelectorAll('.input-field');
+                inputs.forEach(input => {
+                    input.style.fontSize = '16px'; // Évite le zoom sur iOS
+                    input.style.minHeight = '44px'; // Touch target
+                });
+                
+                console.log('📱 Interface adaptée pour mobile');
+            }
+        }
+
+        // Adapter l'interface au redimensionnement
+        window.addEventListener('resize', adaptMobileInterface);
+        
+        // Adapter l'interface au chargement initial
+        document.addEventListener('DOMContentLoaded', () => {
+            adaptMobileInterface();
+            setTimeout(adaptMobileInterface, 100); // Double vérification
+        });
     </script>
 </body>
 </html>
