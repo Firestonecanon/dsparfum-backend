@@ -394,6 +394,156 @@
             font-weight: bold;
             font-size: 0.9rem;
         }
+
+        /* === RESPONSIVE DESIGN MOBILE === */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .admin-nav {
+                gap: 8px;
+            }
+            
+            .nav-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                padding: 20px;
+                gap: 15px;
+            }
+            
+            .admin-section {
+                padding: 20px;
+            }
+            
+            .admin-section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            /* === TABLEAU MOBILE AMÉLIORÉ === */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                margin: 20px 0;
+                background: white;
+            }
+            
+            .clients-table {
+                min-width: 900px; /* Force la largeur minimale */
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            
+            .clients-table th,
+            .clients-table td {
+                padding: 12px 8px;
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+            
+            /* Colonnes prioritaires sur mobile */
+            .clients-table th:nth-child(1), /* Checkbox */
+            .clients-table td:nth-child(1) {
+                position: sticky;
+                left: 0;
+                background: inherit;
+                z-index: 10;
+                width: 40px;
+                min-width: 40px;
+            }
+            
+            .clients-table th:nth-child(2), /* ID */
+            .clients-table td:nth-child(2) {
+                position: sticky;
+                left: 40px;
+                background: inherit;
+                z-index: 10;
+                width: 60px;
+                min-width: 60px;
+            }
+            
+            .clients-table th:nth-child(3), /* Nom */
+            .clients-table td:nth-child(3) {
+                position: sticky;
+                left: 100px;
+                background: inherit;
+                z-index: 10;
+                width: 150px;
+                min-width: 150px;
+                font-weight: 600;
+            }
+            
+            /* Indicateur de scroll horizontal */
+            .scroll-indicator {
+                background: linear-gradient(90deg, #667eea, #764ba2);
+                color: white;
+                padding: 8px 15px;
+                text-align: center;
+                font-size: 0.85rem;
+                font-weight: 600;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+            
+            /* Styles pour les actions mobiles */
+            .mobile-actions {
+                display: flex;
+                gap: 5px;
+                flex-wrap: wrap;
+            }
+            
+            .mobile-actions .btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+                border-radius: 6px;
+            }
+            
+            /* Modales mobiles */
+            .modal-content {
+                width: 95% !important;
+                max-width: none !important;
+                margin: 10px !important;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .modal-body {
+                padding: 15px !important;
+            }
+            
+            /* Formulaires mobiles */
+            .input-field {
+                font-size: 16px !important; /* Évite le zoom sur iOS */
+            }
+        }
     </style>
 </head>
 <body>
@@ -632,14 +782,17 @@
                 return;
             }
 
+            // Détecter si on est sur mobile
+            const isMobile = window.innerWidth <= 768;
+
             let html = `
                 <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; ${isMobile ? 'flex-direction: column; gap: 15px;' : ''}">
                         <div>
                             <h3 style="color: #1a202c; margin: 0;">📋 Liste des Clients</h3>
                             <p style="color: #4a5568; margin: 5px 0 0 0;">Affichage de ${startIndex + 1}-${Math.min(endIndex, filteredClients.length)} sur ${filteredClients.length} clients</p>
                         </div>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 10px; align-items: center; ${isMobile ? 'flex-wrap: wrap;' : ''}">
                             <label style="color: #4a5568; font-weight: 600;">Items par page:</label>
                             <select id="items-per-page" onchange="changeItemsPerPage()" style="padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
                                 <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
@@ -665,6 +818,17 @@
                 </div>
             `;
 
+            // Indicateur de scroll pour mobile
+            if (isMobile) {
+                html += `
+                    <div class="scroll-indicator">
+                        👈 Glissez vers la droite pour voir toutes les colonnes 👉
+                    </div>
+                `;
+            }
+
+            // Container avec scroll horizontal pour mobile
+            html += `<div class="table-container">`;
             html += '<table class="clients-table"><tr><th><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th><th>ID</th><th>Nom</th><th>Email</th><th>CA Client</th><th>Commandes</th><th>Date</th><th>Status</th><th>Actions</th></tr>';
             
             clientsToShow.forEach(client => {
@@ -703,7 +867,7 @@
                     <td style="font-size: 0.9rem;">${createdDate.toLocaleDateString('fr-FR')}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <div style="display: flex; gap: 5px;">
+                        <div class="mobile-actions" style="display: flex; gap: 5px;">
                             <button class="btn danger" onclick="deleteClient(${client.id})" title="Supprimer" style="padding: 6px 10px; font-size: 12px;">🗑️</button>
                             <button class="btn" onclick="showClientDetails(${client.id})" title="Détails" style="padding: 6px 10px; font-size: 12px;">👁️</button>
                             <button class="btn info" onclick="editClient(${client.id})" title="Modifier" style="padding: 6px 10px; font-size: 12px;">✏️</button>
@@ -712,6 +876,7 @@
                 </tr>`;
             });
             html += '</table>';
+            html += '</div>'; // Fermer le container de scroll
             html += createPagination();
             container.innerHTML = html;
         }
