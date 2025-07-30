@@ -383,6 +383,18 @@ app.get('/debug-android', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-debug-android.html'));
 });
 
+// Route TEST ULTRA MINIMAL (aucune restriction)
+app.get('/test-minimal-android', (req, res) => {
+  console.log(`🔥 Route test ultra minimal ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  
+  // SUPPRIMER TOUTES LES RESTRICTIONS
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy');
+  res.removeHeader('X-WebKit-CSP');
+  
+  res.sendFile(path.join(__dirname, 'test-ultra-minimal.html'));
+});
+
 app.get('/admin-emergency', (req, res) => {
   const adminHtml = `
 <!DOCTYPE html>

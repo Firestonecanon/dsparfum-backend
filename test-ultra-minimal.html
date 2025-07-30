@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST ANDROID MINIMAL</title>
+</head>
+<body style="font-family: Arial; padding: 20px; background: #f0f0f0;">
+    <h1 style="color: red; font-size: 24px;">🔥 TEST MINIMAL ANDROID</h1>
+    <p style="font-size: 18px;">Si vous voyez ce texte, le HTML fonctionne !</p>
+    <div id="info" style="background: white; padding: 15px; margin: 10px 0; border: 2px solid black;">
+        Chargement des informations...
+    </div>
+    <button onclick="runTest()" style="background: blue; color: white; padding: 15px; font-size: 16px; border: none;">CLIQUER ICI</button>
+    <div id="result" style="background: yellow; padding: 10px; margin: 10px 0; min-height: 50px;">
+        Résultat du test...
+    </div>
+
+    <script>
+        // Test immédiat au chargement
+        document.getElementById('info').innerHTML = 'JavaScript fonctionne ! User-Agent: ' + navigator.userAgent.substring(0, 100);
+        
+        function runTest() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<strong>✅ BOUTON CLIQUÉ !</strong><br>Timestamp: ' + new Date().toLocaleString();
+            
+            // Test API simple
+            fetch('https://api.dsparfum.fr/api/admin/clients')
+                .then(response => {
+                    result.innerHTML += '<br>📡 API Response: ' + response.status;
+                    return response.json();
+                })
+                .then(data => {
+                    result.innerHTML += '<br>📊 Données reçues: ' + (Array.isArray(data) ? data.length : 'Format inattendu');
+                })
+                .catch(error => {
+                    result.innerHTML += '<br>❌ Erreur API: ' + error.message;
+                });
+        }
+        
+        // Test automatique après 2 secondes
+        setTimeout(() => {
+            document.getElementById('result').innerHTML = '⏰ Test automatique après 2s - JavaScript actif !';
+        }, 2000);
+    </script>
+</body>
+</html>
