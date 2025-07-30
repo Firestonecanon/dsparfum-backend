@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug Android DS Parfum</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f0f0f0; 
+            margin: 0;
+        }
+        .debug-box { 
+            background: white; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: 2px solid #333;
+        }
+        .error { background: #ffebee; border-color: #f44336; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        .big-text { font-size: 18px; font-weight: bold; }
+        .logs { 
+            background: #263238; 
+            color: #00ff00; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:active { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="debug-box big-text">
+        🔧 DIAGNOSTIC ANDROID DS PARFUM
+    </div>
+    
+    <div class="debug-box info">
+        <strong>📱 Détection Mobile:</strong>
+        <div id="mobile-info">Chargement...</div>
+    </div>
+    
+    <div class="debug-box">
+        <strong>🌐 API Test:</strong>
+        <div id="api-status">Test en cours...</div>
+        <button onclick="testAPI()">🔄 Re-tester API</button>
+    </div>
+    
+    <div class="debug-box">
+        <strong>📋 Actions:</strong><br>
+        <button onclick="showBasicContent()">📄 Afficher Contenu</button>
+        <button onclick="testLocalStorage()">💾 Test Storage</button>
+        <button onclick="clearLogs()">🗑️ Vider Logs</button>
+    </div>
+    
+    <div class="debug-box">
+        <strong>📊 Console Logs:</strong>
+        <div class="logs" id="console-logs">Initialisation...\n</div>
+    </div>
+    
+    <div id="content-area"></div>
+
+    <script>
+        let logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logsDiv = document.getElementById('console-logs');
+            if (logsDiv) {
+                logsDiv.textContent = logs.slice(-20).join('\n');
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            }
+            
+            console.log(logEntry);
+        }
+        
+        // Override console pour capturer
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            addLog(args.join(' '), 'log');
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            addLog(args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+        
+        // Capture erreurs globales
+        window.addEventListener('error', function(e) {
+            addLog(`ERROR: ${e.message} (${e.filename}:${e.lineno})`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            addLog(`PROMISE ERROR: ${e.reason}`, 'error');
+        });
+        
+        function detectMobile() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const isAndroid = /Android/i.test(userAgent);
+            
+            const info = `
+                User-Agent: ${userAgent.substring(0, 100)}...<br>
+                Mobile: ${isMobile ? 'OUI' : 'NON'}<br>
+                Android: ${isAndroid ? 'OUI' : 'NON'}<br>
+                Screen: ${screen.width}x${screen.height}<br>
+                Viewport: ${window.innerWidth}x${window.innerHeight}<br>
+                Location: ${window.location.href}
+            `;
+            
+            document.getElementById('mobile-info').innerHTML = info;
+            addLog(`Mobile détecté: ${isMobile}, Android: ${isAndroid}`);
+        }
+        
+        async function testAPI() {
+            const statusDiv = document.getElementById('api-status');
+            statusDiv.innerHTML = '⏳ Test en cours...';
+            
+            const apiUrl = 'https://api.dsparfum.fr';
+            addLog(`Test API vers: ${apiUrl}`);
+            
+            try {
+                const response = await fetch(`${apiUrl}/api/admin/clients`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                addLog(`Réponse API: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const clientCount = Array.isArray(data) ? data.length : (data.clients ? data.clients.length : 0);
+                    statusDiv.innerHTML = `✅ API OK - ${clientCount} clients trouvés`;
+                    statusDiv.className = 'debug-box success';
+                    addLog(`API Success: ${clientCount} clients`);
+                } else {
+                    statusDiv.innerHTML = `⚠️ API répond mais erreur ${response.status}`;
+                    statusDiv.className = 'debug-box error';
+                    addLog(`API Error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `❌ Erreur: ${error.message}`;
+                statusDiv.className = 'debug-box error';
+                addLog(`API Exception: ${error.message}`, 'error');
+            }
+        }
+        
+        function showBasicContent() {
+            const content = document.getElementById('content-area');
+            content.innerHTML = `
+                <div class="debug-box success">
+                    <h2>✅ CONTENU AFFICHÉ</h2>
+                    <p>Si vous voyez ceci, le JavaScript fonctionne !</p>
+                    <p>Timestamp: ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+            addLog('Contenu basique affiché');
+        }
+        
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'android-test-' + Date.now());
+                const value = localStorage.getItem('test');
+                addLog(`LocalStorage OK: ${value}`);
+                
+                sessionStorage.setItem('test', 'session-test');
+                addLog('SessionStorage OK');
+                
+                alert('✅ Storage fonctionne !');
+            } catch (error) {
+                addLog(`Storage Error: ${error.message}`, 'error');
+                alert('❌ Erreur Storage: ' + error.message);
+            }
+        }
+        
+        function clearLogs() {
+            logs = [];
+            document.getElementById('console-logs').textContent = 'Logs vidés...\n';
+            addLog('Logs vidés');
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('DOM Content Loaded');
+            detectMobile();
+            testAPI();
+            
+            // Test après 2 secondes
+            setTimeout(() => {
+                addLog('Test automatique après 2s');
+                if (document.body) {
+                    addLog('Body accessible');
+                } else {
+                    addLog('Body non accessible', 'error');
+                }
+            }, 2000);
+        });
+        
+        addLog('Script chargé');
+    </script>
+</body>
+</html>

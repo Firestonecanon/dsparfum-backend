@@ -361,6 +361,28 @@ app.get('/admin2', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Route de TEST ALTERNATIVE pour contourner un éventuel blocage sur "/admin"
+app.get('/interface-admin', (req, res) => {
+  console.log(`🔥 Route /interface-admin appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  
+  const userAgent = req.headers['user-agent'] || '';
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  
+  if (isMobile) {
+    console.log(`📱 Mobile détecté sur /interface-admin → Envoi admin-mobile.html`);
+    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+  } else {
+    console.log(`💻 Desktop détecté sur /interface-admin → Envoi admin.html`);
+    res.sendFile(path.join(__dirname, 'admin.html'));
+  }
+});
+
+// Route de DEBUG ANDROID simple
+app.get('/debug-android', (req, res) => {
+  console.log(`🔧 Route debug Android appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  res.sendFile(path.join(__dirname, 'admin-debug-android.html'));
+});
+
 app.get('/admin-emergency', (req, res) => {
   const adminHtml = `
 <!DOCTYPE html>

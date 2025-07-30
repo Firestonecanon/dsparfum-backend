@@ -194,7 +194,40 @@
             border-radius: 8px;
             margin: 10px 0;
             font-size: 12px;
+            display: block;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 9999;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ff4757;
+            color: white;
+            padding: 20px;
+            z-index: 10000;
+            overflow-y: auto;
+            font-size: 14px;
             display: none;
+        }
+        .debug-console {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
         }
         .modal-overlay { 
             position: fixed; 
@@ -286,6 +319,17 @@
     </style>
 </head>
 <body>
+    <div class="error-overlay" id="error-overlay">
+        <h2>🚨 ERREUR CRITIQUE DÉTECTÉE</h2>
+        <div id="error-details"></div>
+        <button onclick="document.getElementById('error-overlay').style.display='none'" style="background: white; color: #ff4757; padding: 10px 20px; border: none; border-radius: 5px; margin-top: 20px;">Fermer</button>
+    </div>
+
+    <div class="debug-console" id="debug-console">
+        <strong>🔧 DEBUG CONSOLE ANDROID</strong><br>
+        <span id="debug-log">Initialisation debug...</span>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>🌟 Admin DS Parfum Mobile</h1>
@@ -344,9 +388,63 @@
     </div>
 
     <script>
+        // SYSTÈME DE DEBUG INTÉGRÉ POUR ANDROID
+        let debugLogs = [];
         let allClients = [];
         let filteredClients = [];
-        let debugMode = false;
+        let debugMode = true; // Toujours activé sur mobile
+        
+        // Override console pour capturer les erreurs
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = function(...args) {
+            const message = args.join(' ');
+            debugLogs.push(`[LOG] ${new Date().toLocaleTimeString()}: ${message}`);
+            updateDebugConsole();
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            const message = args.join(' ');
+            debugLogs.push(`[ERROR] ${new Date().toLocaleTimeString()}: ${message}`);
+            updateDebugConsole();
+            showError('Console Error', message);
+            originalConsoleError.apply(console, args);
+        };
+        
+        // Capture des erreurs globales
+        window.addEventListener('error', function(event) {
+            const errorMsg = `${event.error?.message || event.message} (${event.filename}:${event.lineno})`;
+            debugLogs.push(`[GLOBAL ERROR] ${new Date().toLocaleTimeString()}: ${errorMsg}`);
+            updateDebugConsole();
+            showError('JavaScript Error', errorMsg);
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            const errorMsg = event.reason?.message || event.reason || 'Promise rejected';
+            debugLogs.push(`[PROMISE ERROR] ${new Date().toLocaleTimeString()}: ${errorMsg}`);
+            updateDebugConsole();
+            showError('Promise Error', errorMsg);
+        });
+        
+        function updateDebugConsole() {
+            const console = document.getElementById('debug-log');
+            if (console) {
+                console.innerHTML = debugLogs.slice(-10).join('<br>');
+            }
+        }
+        
+        function showError(title, message) {
+            const overlay = document.getElementById('error-overlay');
+            const details = document.getElementById('error-details');
+            if (overlay && details) {
+                details.innerHTML = `<h3>${title}</h3><p>${message}</p><div style="margin-top: 20px;"><strong>Debug Logs:</strong><br>${debugLogs.slice(-5).join('<br>')}</div>`;
+                overlay.style.display = 'block';
+            }
+        }
+        
+        console.log('🔧 Système de debug Android initialisé');
         
         // DETECTION ENVIRONNEMENT MOBILE
         function isMobile() {
@@ -375,17 +473,6 @@
         
         function debugLog(message) {
             console.log(`🔧 [DEBUG] ${message}`);
-            if (debugMode) {
-                const debugDiv = document.getElementById('debug-info');
-                const debugMessage = document.getElementById('debug-message');
-                debugMessage.textContent = message;
-                debugDiv.style.display = 'block';
-                setTimeout(() => {
-                    if (debugDiv.style.display === 'block') {
-                        debugDiv.style.display = 'none';
-                    }
-                }, 5000);
-            }
         }
         
         function toggleDebug() {
@@ -425,11 +512,35 @@
             }
         }
         
-        // INITIALISATION
+        // INITIALISATION AVEC DEBUG COMPLET
         document.addEventListener('DOMContentLoaded', () => {
-            setupMobileFixes();
-            debugLog('Interface mobile initialisée');
-            testServerConnection();
+            console.log('🚀 DOMContentLoaded déclenché');
+            
+            try {
+                console.log('📱 User Agent:', navigator.userAgent);
+                console.log('🌐 Location:', window.location.href);
+                console.log('🔧 Debug mode:', debugMode);
+                
+                setupMobileFixes();
+                console.log('✅ Mobile fixes configurés');
+                
+                testServerConnection();
+                console.log('🔗 Test de connexion lancé');
+                
+                // Test d'affichage basique
+                setTimeout(() => {
+                    const container = document.querySelector('.container');
+                    if (container) {
+                        console.log('✅ Container trouvé');
+                    } else {
+                        console.error('❌ Container non trouvé !');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('💥 Erreur dans DOMContentLoaded:', error.message);
+                showError('Erreur d\'initialisation', error.message);
+            }
         });
 
         async function testServerConnection() {
