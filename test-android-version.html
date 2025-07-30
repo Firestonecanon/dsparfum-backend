@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Test Version Android - DS Parfum</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+            text-align: center; 
+            padding: 20px; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card { 
+            background: rgba(255,255,255,0.95); 
+            color: #1a202c;
+            padding: 30px; 
+            border-radius: 15px; 
+            margin: 20px auto; 
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        button { 
+            background: linear-gradient(135deg, #38a169, #48bb78);
+            color: white; 
+            border: none; 
+            padding: 15px 25px; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin: 10px;
+            min-width: 200px;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .success { color: #38a169; font-weight: bold; }
+        .warning { color: #ed8936; font-weight: bold; }
+        .info { background: #bee3f8; color: #2c5aa0; padding: 15px; border-radius: 8px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🎯 Test Version Android</h1>
+        <p><strong>Objectif :</strong> Vérifier que vous recevez la version complète admin.html v4.0 Ultra Enterprise</p>
+        
+        <div id="version-info" class="info">
+            📱 Détection en cours...
+        </div>
+        
+        <div style="margin: 25px 0;">
+            <button onclick="testAdminRoute()">🔥 Tester /admin</button>
+            <button onclick="testAndroidRoute()">📱 Tester /admin-android</button>
+            <button onclick="testInterfaceRoute()">🎯 Tester /interface-admin</button>
+        </div>
+        
+        <div id="results" style="margin-top: 20px;"></div>
+    </div>
+    
+    <script>
+        // Détecter l'appareil
+        const userAgent = navigator.userAgent;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        const isAndroid = /Android/i.test(userAgent);
+        
+        document.getElementById('version-info').innerHTML = `
+            <strong>🔍 Votre appareil :</strong><br>
+            📱 Mobile : ${isMobile ? '✅ Oui' : '❌ Non'}<br>
+            🤖 Android : ${isAndroid ? '✅ Oui' : '❌ Non'}<br>
+            🆔 User-Agent : ${userAgent.substring(0, 60)}...
+        `;
+        
+        function testAdminRoute() {
+            window.location.href = '/admin';
+        }
+        
+        function testAndroidRoute() {
+            window.location.href = '/admin-android';
+        }
+        
+        function testInterfaceRoute() {
+            window.location.href = '/interface-admin';
+        }
+        
+        // Message d'instruction
+        setTimeout(() => {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="info">
+                    <strong>📋 Instructions :</strong><br>
+                    1. Cliquez sur un bouton pour tester une route<br>
+                    2. Vous devriez arriver sur l'interface admin v4.0 Ultra<br>
+                    3. Vérifiez que vous avez toutes les fonctionnalités :<br>
+                    &nbsp;&nbsp;• ✅ Doublons avec suppression automatique<br>
+                    &nbsp;&nbsp;• ✅ Filtres avancés<br>
+                    &nbsp;&nbsp;• ✅ Actions en masse<br>
+                    &nbsp;&nbsp;• ✅ Raccourcis clavier<br>
+                    &nbsp;&nbsp;• ✅ Interface entreprise v4.0
+                </div>
+            `;
+        }, 1000);
+    </script>
+</body>
+</html>

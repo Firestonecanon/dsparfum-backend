@@ -323,6 +323,15 @@ app.get('/test-mobile-fix.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'test-mobile-fix.html'));
 });
 
+// Route de TEST VERSION ANDROID
+app.get('/test-android-version.html', (req, res) => {
+  console.log('🎯 Page de test version Android demandée');
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy'); 
+  res.removeHeader('X-WebKit-CSP');
+  res.sendFile(path.join(__dirname, 'test-android-version.html'));
+});
+
 // Route de TEST MINIMAL (absolument aucune restriction)
 app.get('/test-minimal.html', (req, res) => {
   // FORCER LA DÉSACTIVATION DE TOUTE CSP
