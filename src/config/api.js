@@ -1,9 +1,9 @@
 // Configuration des URLs d'API selon l'environnement
 const API_CONFIG = {
-  // En développement, utiliser le backend local
+  // En développement, utiliser le serveur simple
   development: {
-    BASE_URL: 'http://localhost:3001',
-    API_URL: 'http://localhost:3001/api'
+    BASE_URL: 'http://localhost:3001', // Serveur simple
+    API_URL: 'http://localhost:3001/api' // API du serveur simple
   },
   // En production, utiliser votre domaine personnalisé
   production: {
@@ -14,7 +14,8 @@ const API_CONFIG = {
 
 // Détecter l'environnement
 const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
-const currentEnv = isDevelopment ? 'development' : 'production';
+// 🔧 TEMPORAIRE: Forcer le développement pour tester les corrections
+const currentEnv = 'development'; // isDevelopment ? 'development' : 'production';
 
 // Export des URLs courantes
 export const API_BASE_URL = API_CONFIG[currentEnv].BASE_URL;
@@ -26,6 +27,17 @@ export const ADMIN_CLIENTS_URL = `${API_URL}/admin/clients`;
 export const ADMIN_EXPORT_URL = `${API_URL}/admin/export`;
 export const CHECKOUT_URL = `${API_URL}/create-checkout-session`;
 export const CONTACT_URL = `${API_URL}/contact`;
+
+// Export par défaut pour compatibilité
+export default {
+  API_BASE_URL,
+  API_URL,
+  CLIENTS_URL,
+  ADMIN_CLIENTS_URL,
+  ADMIN_EXPORT_URL,
+  CHECKOUT_URL,
+  CONTACT_URL
+};
 
 // Log pour debug
 if (isDevelopment) {

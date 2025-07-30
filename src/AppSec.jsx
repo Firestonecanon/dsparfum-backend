@@ -2114,12 +2114,13 @@ return (
           
           {/* Compteur de visites privé - visible uniquement en mode admin */}
           <PrivateVisitCounter />
+        </>
+        
         </div>
         </CartProvider>
         </PromoProvider>
-      </BrowserRouter>
-    </ContactProvider>
+        } />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;

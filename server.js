@@ -14,13 +14,23 @@ const __dirname = path.dirname(__filename);
 
 // Configuration des variables d'environnement en premier
 dotenv.config();
+// Charger aussi .env.local en développement s'il existe
+if (process.env.NODE_ENV === 'development') {
+  dotenv.config({ path: '.env.local' });
+}
 
 // === Configuration de la base de données PostgreSQL ===
 console.log(`🐘 Configuration PostgreSQL...`);
 
+// Déterminer si nous devons utiliser SSL selon l'URL de la base
+const isRemoteDB = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgres.render.com');
+
+console.log(`🔍 DATABASE_URL: ${process.env.DATABASE_URL ? 'Définie (production)' : 'Non définie (local)'}`);
+console.log(`🔍 SSL requis: ${isRemoteDB ? 'Oui (base distante)' : 'Non (base locale)'}`);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/dsparfum',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: isRemoteDB ? { rejectUnauthorized: false } : false
 });
 
 // Test de connexion et initialisation des tables
@@ -158,11 +168,20 @@ app.post('/api/contact', async (req, res) => {
   console.log('📨 Nouveau contact reçu:', req.body);
   
   try {
+    // Support des anciens ET nouveaux formats
     const { 
+      // Nouveau format avec champs séparés
+      firstName, 
+      lastName,
+      street,
+      postalCode,
+      city,
+      // Ancien format (rétrocompatibilité)
       name, 
+      address,
+      // Champs communs
       email, 
       phone = '', 
-      address = '', 
       subject = '', 
       message = '', 
       paymentMethod = '',
@@ -171,10 +190,20 @@ app.post('/api/contact', async (req, res) => {
       promo = '' 
     } = req.body;
     
-    // Validation des données requises
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'Nom, email et message sont requis' });
+    // Construire le nom complet et l'adresse selon le format reçu
+    const fullName = firstName && lastName ? `${firstName} ${lastName}` : name || '';
+    const fullAddress = street && postalCode && city ? `${street}, ${postalCode} ${city}` : address || '';
+    
+    // Validation des données requises - accepter firstName+lastName OU name
+    if (!fullName || fullName.trim() === '') {
+      return res.status(400).json({ error: 'Prénom et nom (ou nom complet) sont requis' });
     }
+    if (!email) {
+      return res.status(400).json({ error: 'Email requis' });
+    }
+    
+    // Message par défaut si vide
+    const finalMessage = message || 'Contact sans message spécifique';
     
     // Préparer les données pour PostgreSQL
     const cartData = Array.isArray(cart) ? JSON.stringify(cart) : '';
@@ -187,12 +216,12 @@ app.post('/api/contact', async (req, res) => {
     `;
     
     const values = [
-      name,
+      fullName,
       email,
       phone,
-      address,
+      fullAddress,
       subject,
-      message,
+      finalMessage, // Utiliser le message final (avec valeur par défaut)
       paymentMethod,
       cartData,
       totalAmount,
@@ -723,22 +752,58 @@ app.post('/api/clients', async (req, res) => {
   console.log('📦 Nouvelle commande reçue via /api/clients:', req.body);
   
   try {
+    // Support des anciens ET nouveaux formats
     const { 
+      // Nouveau format avec champs séparés
+      firstName, 
+      lastName,
+      street,
+      postalCode,
+      city,
+      // Ancien format (rétrocompatibilité)
       name, 
+      address,
+      // Champs communs
       email, 
       phone = '', 
-      address = '', 
       subject = '', 
       message = '', 
       paymentMethod = '',
       cart = [], 
       total = 0, 
-      promo = '' 
+      promo = '',
+      timestamp // Utilisé pour éviter les doublons
     } = req.body;
     
-    // Validation des données requises
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Nom et email sont requis' });
+    // Construire le nom complet et l'adresse selon le format reçu
+    const fullName = firstName && lastName ? `${firstName} ${lastName}` : name || '';
+    const fullAddress = street && postalCode && city ? `${street}, ${postalCode} ${city}` : address || '';
+    
+    // Validation des données requises - accepter firstName+lastName OU name
+    if (!fullName || fullName.trim() === '') {
+      return res.status(400).json({ error: 'Prénom et nom (ou nom complet) sont requis' });
+    }
+    if (!email) {
+      return res.status(400).json({ error: 'Email requis' });
+    }
+    
+    // Vérifier les doublons récents basés sur email + timestamp (dans les 10 dernières secondes)
+    if (timestamp) {
+      const tenSecondsAgo = timestamp - 10000;
+      const duplicateCheck = await pool.query(
+        'SELECT id FROM clients WHERE email = $1 AND created_at > $2',
+        [email, new Date(tenSecondsAgo)]
+      );
+      
+      if (duplicateCheck.rows.length > 0) {
+        console.log('🛡️ Doublon détecté et évité pour:', email);
+        return res.json({
+          success: true,
+          message: 'Client déjà enregistré',
+          id: duplicateCheck.rows[0].id,
+          isDuplicate: true
+        });
+      }
     }
     
     // Préparer les données pour PostgreSQL
@@ -752,10 +817,10 @@ app.post('/api/clients', async (req, res) => {
     `;
     
     const values = [
-      name,
+      fullName,
       email,
       phone,
-      address,
+      fullAddress,
       subject || 'Nouvelle commande',
       message || 'Commande passée via le panier',
       paymentMethod,

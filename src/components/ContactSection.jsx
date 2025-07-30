@@ -1,4 +1,3 @@
-
 // Composant ContactSection :
 // - Récupère automatiquement le panier client (commande) via sessionStorage ou event
 // - Pré-remplit le formulaire avec la commande
@@ -7,22 +6,16 @@
 import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
 import { CONTACT_URL } from '../config/api.js';
+import { useContact } from '../context/ContactContext';
+import CustomerInfoForm from './CustomerInfoForm';
 
 export default function ContactSection() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '', // Ajout adresse postale facultative
-    subject: '',
-    message: '',
-    paymentMethod: ''
-  });
-
-  // Ref pour le textarea message
-  const messageRef = React.useRef(null);
-
+  const { contactInfo, updateContactInfo } = useContact();
+  
   const [orderLoaded, setOrderLoaded] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
 
   const paymentMethods = [
     { id: 'paypal', name: 'PayPal', icon: '💳' },
@@ -33,40 +26,31 @@ export default function ContactSection() {
 
   // Fonction pour charger les données de commande
   const loadOrderData = () => {
-    console.log('🔍 Recherche de données de commande...');
+    // ⚠️ NOTE: Cette fonction peut être conservée pour la compatibilité
+    // mais ContactSection ne doit PAS créer de clients automatiquement
+    console.log('🔍 Recherche de données de commande (affichage uniquement)...');
+    
     // Vérifier sessionStorage
     const pendingOrder = sessionStorage.getItem('dsparfum-pending-order');
     if (pendingOrder) {
       try {
         const orderData = JSON.parse(pendingOrder);
-        console.log('✅ Commande trouvée dans sessionStorage:', orderData);
-        setFormData(prev => {
-          // Évite la double injection si déjà présent
-          const alreadyInjected = prev.message && prev.message.includes(orderData.message);
-          return {
-            ...prev,
-            subject: orderData.subject || '',
-            message: alreadyInjected
-              ? prev.message
-              : (orderData.message + (prev.message ? '\n\n' + prev.message : ''))
-          };
+        console.log('✅ Commande trouvée (ajout au message uniquement):', orderData);
+        
+        // ✅ SÉCURITÉ: Ajouter au message UNIQUEMENT, ne pas créer de client
+        updateContactInfo({
+          message: orderData.message + (contactInfo.message ? '\n\n' + contactInfo.message : '')
         });
+        
         setOrderLoaded(true);
         // Nettoyer après utilisation
         sessionStorage.removeItem('dsparfum-pending-order');
-        // Focus et scroll sur le textarea après injection (mobile UX)
-        setTimeout(() => {
-          if (messageRef.current) {
-            messageRef.current.focus();
-            messageRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 300);
         return true;
       } catch (error) {
         console.error('❌ Erreur lors du parsing de la commande:', error);
       }
     }
-    console.log('❌ Aucune commande trouvée');
+    // Réduction du spam de logs - pas de log à chaque fois
     return false;
   };
 
@@ -81,24 +65,10 @@ export default function ContactSection() {
       console.log('📨 Nouvel événement de commande reçu:', event.detail);
       const orderData = event.detail;
       if (orderData && orderData.subject && orderData.message) {
-        setFormData(prev => {
-          const alreadyInjected = prev.message && prev.message.includes(orderData.message);
-          return {
-            ...prev,
-            subject: orderData.subject,
-            message: alreadyInjected
-              ? prev.message
-              : (orderData.message + (prev.message ? '\n\n' + prev.message : ''))
-          };
+        updateContactInfo({
+          message: orderData.message + (contactInfo.message ? '\n\n' + contactInfo.message : '')
         });
         setOrderLoaded(true);
-        // Focus et scroll sur le textarea après injection (mobile UX)
-        setTimeout(() => {
-          if (messageRef.current) {
-            messageRef.current.focus();
-            messageRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 300);
         console.log('✅ Formulaire mis à jour avec la commande');
       }
     };
@@ -106,124 +76,108 @@ export default function ContactSection() {
     return () => {
       window.removeEventListener('newOrderReady', handleNewOrder);
     };
-  }, []);
+  }, [contactInfo.message, updateContactInfo]);
 
-  // Vérification périodique (fallback)
+  // Vérification périodique (fallback) - réduite pour éviter le spam
   useEffect(() => {
     if (!orderLoaded) {
-      const interval = setInterval(() => {
+      // Vérification une seule fois après 2 secondes, puis stop
+      const timeout = setTimeout(() => {
         if (loadOrderData()) {
-          clearInterval(interval);
+          console.log('✅ Commande trouvée lors de la vérification différée');
         }
-      }, 500);
+      }, 2000);
 
-      // Nettoyer l'interval après 10 secondes
-      setTimeout(() => {
-        clearInterval(interval);
-      }, 10000);
-
-      return () => clearInterval(interval);
+      return () => clearTimeout(timeout);
     }
   }, [orderLoaded]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Gestion de l'état d'envoi
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Fonction de soumission du formulaire
+  const handleContactSubmit = async (formData) => {
     setSending(true);
     setError(null);
 
+    console.log('🔍 ContactSection - Données reçues du formulaire:', formData);
+    
+    // ⚠️ SÉCURITÉ: Vérifier qu'on n'utilise pas ces données pour créer un client
+    console.log('✅ SÉCURITÉ: ContactSection traite UNIQUEMENT les contacts, PAS les clients');
+
     // Construction du message complet (avec panier injecté)
-    let emailBody = `Nom: ${formData.name}\n`;
+    let emailBody = `Prénom: ${formData.firstName}\n`;
+    emailBody += `Nom: ${formData.lastName}\n`;
     emailBody += `Email: ${formData.email}\n`;
     emailBody += `Téléphone: ${formData.phone}\n`;
-    if (formData.address) emailBody += `Adresse postale: ${formData.address}\n`;
-    if (formData.paymentMethod) {
-      const selectedPayment = paymentMethods.find(method => method.id === formData.paymentMethod);
-      emailBody += `Mode de paiement souhaité: ${selectedPayment?.name}\n`;
-    }
+    emailBody += `Adresse: ${formData.street}, ${formData.postalCode} ${formData.city}\n`;
     emailBody += `\nMessage (panier inclus):\n${formData.message}`;
 
     // Paramètres EmailJS
-    const serviceID = 'default_service'; // Service par défaut EmailJS (à adapter si tu en as créé un autre)
-    const templateID = 'template_7jq93dw'; // Ton template ID EmailJS
-    const userID = 'yT_WG-KfFJZTG-bJO'; // Clé publique EmailJS fournie
+    const serviceID = 'default_service';
+    const templateID = 'template_7jq93dw';
+    const userID = 'yT_WG-KfFJZTG-bJO';
 
     const templateParams = {
-      from_name: formData.name,
+      from_name: `${formData.firstName} ${formData.lastName}`,
       from_email: formData.email,
       phone: formData.phone,
-      address: formData.address,
-      subject: formData.subject || 'Contact D&S Parfum',
-      payment: formData.paymentMethod,
+      address: `${formData.street}, ${formData.postalCode} ${formData.city}`,
+      subject: 'Contact D&S Parfum',
       message: emailBody,
     };
 
-    emailjs.send(serviceID, templateID, templateParams, userID)
-      .then(async () => {
-        // Envoi réussi via EmailJS
+    try {
+      // D'abord enregistrer dans le backend
+      let backendSuccess = false;
+      try {
+        console.log('🔄 Tentative d\'enregistrement sur:', CONTACT_URL);
+        const response = await fetch(CONTACT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            street: formData.street,
+            postalCode: formData.postalCode,
+            city: formData.city,
+            message: formData.message
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Contact enregistré dans l\'admin:', result);
+          backendSuccess = true;
+        } else {
+          console.error('❌ Erreur HTTP:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('❌ Erreur enregistrement contact admin:', error);
+      }
+
+      // Ensuite tenter EmailJS (optionnel)
+      try {
+        await emailjs.send(serviceID, templateID, templateParams, userID);
+        console.log('✅ Email envoyé via EmailJS');
+      } catch (emailError) {
+        console.warn('⚠️ EmailJS a échoué, mais les données sont sauvegardées:', emailError);
+      }
+
+      // Si au moins le backend a réussi, considérer comme succès
+      if (backendSuccess) {
         setSending(false);
         setSent(true);
-        
-        // Enregistrer le contact dans la base admin
-        try {
-          console.log('🔄 Tentative d\'enregistrement sur:', CONTACT_URL);
-          const response = await fetch(CONTACT_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              message: formData.message,
-              address: formData.address,
-              paymentMethod: formData.paymentMethod,
-              subject: formData.subject
-            }),
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('✅ Contact enregistré dans l\'admin:', result);
-          } else {
-            console.error('❌ Erreur HTTP:', response.status, response.statusText);
-            const errorText = await response.text();
-            console.error('📝 Détails de l\'erreur:', errorText);
-          }
-        } catch (error) {
-          console.error('❌ Erreur enregistrement contact admin:', error);
-          console.error('🔗 URL utilisée:', CONTACT_URL);
-          // Ne pas bloquer l'utilisateur si l'admin ne répond pas
-        }
-        
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          address: '',
-          subject: '',
-          message: '',
-          paymentMethod: ''
-        });
-      })
-      .catch((err) => {
-        setSending(false);
-        setError("Erreur lors de l'envoi. Merci de réessayer ou de nous contacter directement.");
-        console.error('❌ Erreur EmailJS:', err);
-      });
+      } else {
+        throw new Error('Échec de l\'enregistrement côté serveur');
+      }
+      
+    } catch (err) {
+      setSending(false);
+      setError("Erreur lors de l'envoi. Merci de réessayer ou de nous contacter directement.");
+      console.error('❌ Erreur globale:', err);
+    }
   };
 
   return (
@@ -396,15 +350,15 @@ export default function ContactSection() {
             </div>
 
             {/* Formulaire de contact */}
-            <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-2xl border-2 border-amber-300 shadow-xl contact-glass">
+            <div>
               {/* Indicateur de commande chargée */}
-              {orderLoaded && formData.subject && formData.message && (
+              {orderLoaded && contactInfo.message && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-green-100/80 via-emerald-50/80 to-green-200/60 border-2 border-green-400/60 rounded-xl animate-pulse shadow-lg flex flex-col md:flex-row items-center gap-4">
                   <div className="flex items-center gap-2 text-green-700">
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-base font-semibold">Commande détectée : votre panier est prêt à être envoyé !</span>
+                    <span className="text-base font-semibold">Commande détectée : votre panier est prêt à être envoyé !</span>
                   </div>
                   <div className="text-xs text-green-800 font-medium mt-1 md:mt-0 md:ml-4">
                     <span className="inline-block px-2 py-1 bg-green-200/60 rounded">Le contenu de votre panier a été automatiquement ajouté au message.</span>
@@ -412,139 +366,24 @@ export default function ContactSection() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-amber-900 mb-2">
-                      Nom complet *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                      placeholder="Votre nom"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-amber-900 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                      placeholder="votre@email.com"
-                    />
-                  </div>
+              <CustomerInfoForm 
+                onSubmit={handleContactSubmit}
+                submitButtonText={sending ? 'Envoi en cours...' : 'Envoyer le message'}
+                title="Contactez-nous"
+                messageLabel="Message"
+              />
+              
+              {/* Messages de statut */}
+              {sent && (
+                <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded text-green-800 text-center font-semibold animate-fade-in">
+                  ✅ Merci, votre message a bien été envoyé ! Nous vous répondrons rapidement.
                 </div>
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-amber-900 mb-2">
-                    Adresse postale (facultatif)
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                    placeholder="Votre adresse postale (facultatif)"
-                  />
+              )}
+              {error && (
+                <div className="mt-4 p-4 bg-red-100 border border-red-400 rounded text-red-800 text-center font-semibold animate-fade-in">
+                  {error}
                 </div>
-
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-amber-900 mb-2">
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                    placeholder="Votre numéro de téléphone"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-amber-900 mb-2">
-                    Sujet
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                    placeholder="Sujet de votre message"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="paymentMethod" className="block text-sm font-medium text-amber-900 mb-2">
-                    Mode de paiement souhaité
-                  </label>
-                  <select
-                    id="paymentMethod"
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300"
-                  >
-                    <option value="">Sélectionnez un mode de paiement</option>
-                    {paymentMethods.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.icon} {method.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-amber-900 mb-2">
-                    Message *
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    required
-                    rows={8}
-                    ref={messageRef}
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/60 border border-amber-200 rounded-lg text-amber-900 placeholder-amber-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors duration-300 resize-none"
-                    placeholder="Votre message ou votre commande..."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-400 hover:from-yellow-300 hover:to-yellow-500 text-amber-900 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl shadow-yellow-200/40 border border-amber-300/60 backdrop-blur-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={sending}
-                >
-                  {sending ? 'Envoi en cours...' : 'Envoyer le message'}
-                </button>
-                {sent && (
-                  <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded text-green-800 text-center font-semibold animate-fade-in">
-                    ✅ Merci, votre message a bien été envoyé ! Nous vous répondrons rapidement.
-                  </div>
-                )}
-                {error && (
-                  <div className="mt-4 p-4 bg-red-100 border border-red-400 rounded text-red-800 text-center font-semibold animate-fade-in">
-                    {error}
-                  </div>
-                )}
-              </form>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CLIENTS_URL, ADMIN_CLIENTS_URL, ADMIN_EXPORT_URL, API_BASE_URL } from '../config/api';
+import { CLIENTS_URL, ADMIN_CLIENTS_URL, ADMIN_EXPORT_URL } from '../config/api';
 
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,7 +10,6 @@ const AdminPage = () => {
   const [filterSource, setFilterSource] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('En attente...');
   const [newClient, setNewClient] = useState({
     name: '',
     email: '',
@@ -32,27 +31,7 @@ const AdminPage = () => {
       setIsAuthenticated(true);
       loadClients();
     }
-    
-    // Test de connexion au backend
-    testConnection();
   }, []);
-
-  const testConnection = async () => {
-    try {
-      console.log('🔍 Test de connexion vers:', API_BASE_URL);
-      const response = await fetch(`${API_BASE_URL}/api/clients`);
-      if (response.ok) {
-        setConnectionStatus('✅ Connecté');
-        console.log('✅ Backend accessible');
-      } else {
-        setConnectionStatus(`❌ Erreur ${response.status}`);
-        console.log('❌ Backend erreur:', response.status);
-      }
-    } catch (error) {
-      setConnectionStatus('❌ Déconnecté');
-      console.log('❌ Backend inaccessible:', error);
-    }
-  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -75,21 +54,16 @@ const AdminPage = () => {
 
   const loadClients = async () => {
     setLoading(true);
-    console.log('🔍 Tentative de chargement des clients depuis:', CLIENTS_URL);
     try {
       const response = await fetch(CLIENTS_URL);
-      console.log('📡 Réponse reçue:', response.status, response.statusText);
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Données reçues:', data);
         setClients(data.data || []);
       } else {
-        console.error('❌ Erreur lors du chargement des clients:', response.status);
-        console.error('📝 Détails de l\'erreur:', await response.text());
+        console.error('Erreur lors du chargement des clients:', response.status);
       }
     } catch (error) {
-      console.error('❌ Erreur chargement clients:', error);
-      console.error('🔗 URL utilisée:', CLIENTS_URL);
+      console.error('Erreur chargement clients:', error);
     } finally {
       setLoading(false);
     }
@@ -169,20 +143,6 @@ const AdminPage = () => {
           <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
             🔐 Administration D&S Parfum
           </h2>
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <strong>Statut Backend:</strong> {connectionStatus}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              URL: {API_BASE_URL}
-            </p>
-            <button 
-              onClick={testConnection}
-              className="mt-2 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Tester la connexion
-            </button>
-          </div>
           <form onSubmit={handleLogin}>
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">

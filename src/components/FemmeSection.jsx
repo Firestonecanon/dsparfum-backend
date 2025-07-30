@@ -62,7 +62,7 @@ export default function FemmeSection() {
           <div className="grid gap-4 md:gap-6">
             {parfumsFemme.map((parfum, index) => (
               <div 
-                key={parfum.id}
+                key={parfum.ref}
                 className="group bg-black/90 backdrop-blur-md border border-gray-700/50 rounded-2xl p-4 md:p-6 hover:border-pink-500/40 transition-all duration-500 hover:transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-500/10 relative overflow-hidden"
                 style={{
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(245, 158, 11, 0.08)'

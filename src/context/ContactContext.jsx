@@ -4,9 +4,13 @@ const ContactContext = createContext();
 
 export const ContactProvider = ({ children }) => {
   const [contactInfo, setContactInfo] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
+    street: '',
+    postalCode: '',
+    city: '',
     message: ''
   });
 
@@ -29,14 +33,24 @@ export const ContactProvider = ({ children }) => {
   }, [contactInfo]);
 
   const updateContactInfo = (updates) => {
-    setContactInfo(prev => ({ ...prev, ...updates }));
+    console.log('📞 ContactContext - updateContactInfo appelé avec:', updates);
+    console.log('📞 ContactContext - contactInfo avant mise à jour:', contactInfo);
+    setContactInfo(prev => {
+      const newState = { ...prev, ...updates };
+      console.log('📞 ContactContext - nouvel état:', newState);
+      return newState;
+    });
   };
 
   const clearContactInfo = () => {
     setContactInfo({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
+      street: '',
+      postalCode: '',
+      city: '',
       message: ''
     });
     sessionStorage.removeItem('dsparfum-contact-info');

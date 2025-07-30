@@ -2168,7 +2168,10 @@ return (
           />
           
           {/* Panier flottant mobile */}
-          <FloatingCartMobile onClick={() => setIsCartModalOpen(true)} />
+          <FloatingCartMobile 
+            onClick={() => setIsCartModalOpen(true)} 
+            isModalOpen={isCartModalOpen}
+          />
           
           {/* Compteur de visites privé - visible uniquement en mode admin */}
           <PrivateVisitCounter />

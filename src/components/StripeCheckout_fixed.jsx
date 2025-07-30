@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import { CHECKOUT_URL } from '../config/api';
 
 const StripeCheckout = ({ cart, total, onSuccess, onCancel }) => {

@@ -245,7 +245,7 @@ export default function SearchBar() {
                 
                 return (
                   <div
-                    key={`search-${product.id}`}
+                    key={`${product.category}-${product.ref || product.id}`}
                     className={`p-3 hover:bg-gray-800/50 cursor-pointer transition-colors duration-200 border-b border-gray-800/30 last:border-b-0 ${
                       isSelected ? 'bg-gray-800/70' : ''
                     }`}

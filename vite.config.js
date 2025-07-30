@@ -8,6 +8,14 @@ export default defineConfig({
     host: true,
     hmr: {
       overlay: false
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001', // Backend local en développement
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
     }
   },
   define: {

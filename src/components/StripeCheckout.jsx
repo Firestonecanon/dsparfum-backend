@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import { CHECKOUT_URL } from '../config/api';
+// ⚠️ SUPPRESSION: import { useContact } from '../context/ContactContext';
+// ❌ StripeCheckout ne doit JAMAIS utiliser ContactContext pour éviter contamination
 
-const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }) => {
+const StripeCheckout = ({ cart, total, customerInfo, onSuccess, onCancel, setIsWaitingStripe }) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
-  const [customerInfo, setCustomerInfo] = useState({
-    email: '',
-    name: '',
-    address: '',
-    city: '',
-    postal: '',
-    phone: ''
-  });
+  // ⚠️ SUPPRESSION: const { contactInfo } = useContact();
+  // ❌ Les informations client doivent venir du prop customerInfo, PAS de ContactContext
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!customerInfo.email) {
-      setError('Veuillez saisir votre email');
+    // ✅ Validation: Les infos client doivent être passées en prop, pas depuis ContactContext
+    if (!customerInfo || !customerInfo.email) {
+      setError('Informations client manquantes. Veuillez remplir le formulaire client dans le panier.');
       return;
     }
 
@@ -26,6 +23,16 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
 
     // Affiche le message d'attente dans CartModal
     if (setIsWaitingStripe) setIsWaitingStripe(true);
+
+    // ✅ SÉCURISÉ: utilisation des données client passées en prop (pas de ContactContext)
+    const customerData = {
+      email: customerInfo.email,
+      name: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
+      address: customerInfo.street || '',
+      city: customerInfo.city || '',
+      postal: customerInfo.postalCode || '',
+      phone: customerInfo.phone || ''
+    };
 
     // 🔥 Paiement Stripe dynamique via backend
     const cartFiltered = cart.map(item => {
@@ -37,7 +44,7 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
     });
     
     console.log('🛒 StripeCheckout - URL utilisée:', CHECKOUT_URL);
-    console.log('🛒 StripeCheckout - Données envoyées:', { cart: cartFiltered, total, customerInfo });
+    console.log('🛒 StripeCheckout - Données envoyées:', { cart: cartFiltered, total, customerInfo: customerData });
     
     fetch(CHECKOUT_URL, {
       method: 'POST',
@@ -47,7 +54,7 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
       body: JSON.stringify({
         cart: cartFiltered,
         total,
-        customerInfo
+        customerInfo: customerData
       })
     })
       .then(res => {
@@ -97,35 +104,18 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
         </div>
       </div>
 
+      {/* Informations client (affichage uniquement) */}
+      <div className="bg-amber-50 p-4 rounded-lg mb-6">
+        <h3 className="font-semibold text-amber-700 mb-2">Vos informations</h3>
+        <div className="space-y-1 text-sm text-amber-800">
+          <div><strong>Nom :</strong> {customerInfo.firstName} {customerInfo.lastName}</div>
+          <div><strong>Email :</strong> {customerInfo.email}</div>
+          <div><strong>Téléphone :</strong> {customerInfo.phone}</div>
+          <div><strong>Adresse :</strong> {customerInfo.street}, {customerInfo.postalCode} {customerInfo.city}</div>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Informations client */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email *
-          </label>
-          <input
-            type="email"
-            required
-            value={customerInfo.email}
-            onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="votre@email.com"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nom complet
-          </label>
-          <input
-            type="text"
-            value={customerInfo.name}
-            onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="Prénom Nom"
-          />
-        </div>
-
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
             {error}

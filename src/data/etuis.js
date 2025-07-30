@@ -1,6 +1,5 @@
 export const etuis = [
   { 
-    id: "e1",
     ref: "TCOV001", 
     publicRef: "DST-001",
     name: "Étui Vagues Violet", 
@@ -11,7 +10,6 @@ export const etuis = [
     image: "/images/TCOV001.avif"
   },
   { 
-    id: "e2",
     ref: "TCOV004", 
     publicRef: "DST-002",
     name: "Étui Cœurs Rouge", 
@@ -22,7 +20,6 @@ export const etuis = [
     image: "/images/TCOV004.webp"
   },
   { 
-    id: "e3",
     ref: "TCOV005", 
     publicRef: "DST-003",
     name: "Étui Chevrons Turquoise", 
@@ -33,7 +30,6 @@ export const etuis = [
     image: "/images/TCOV005.avif"
   },
   { 
-    id: "e4",
     ref: "TCOV006", 
     publicRef: "DST-004",
     name: "Étui Losanges Doré", 

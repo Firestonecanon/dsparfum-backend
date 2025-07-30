@@ -1,12 +1,13 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 
-const FloatingCartMobile = ({ onClick }) => {
+const FloatingCartMobile = ({ onClick, isModalOpen = false }) => {
   const { getTotalItems, getTotalPrice } = useCart();
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
 
-  if (totalItems === 0) return null;
+  // Cacher la barre si le modal est ouvert ou si le panier est vide
+  if (totalItems === 0 || isModalOpen) return null;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 lg:hidden">
