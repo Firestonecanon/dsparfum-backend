@@ -376,7 +376,7 @@ app.get('/admin-final.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-final.html'));
 });
 
-// Route intelligente qui détecte mobile et redirige avec gestion d'erreur
+// Route intelligente qui détecte mobile et envoie TOUJOURS admin.html v4.0 Ultra
 app.get('/admin', (req, res) => {
   console.log(`🔥 Route /admin appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
   
@@ -384,38 +384,33 @@ app.get('/admin', (req, res) => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
   if (isMobile) {
-    console.log(`📱 Mobile détecté → Tentative envoi admin-mobile.html`);
+    console.log(`📱 Mobile détecté → Envoi admin.html v4.0 Ultra Enterprise (version complète)`);
     // SUPPRIMER CSP pour mobile
     res.removeHeader('Content-Security-Policy');
     res.removeHeader('X-Content-Security-Policy');
     res.removeHeader('X-WebKit-CSP');
     
-    const mobilePath = path.join(__dirname, 'admin-mobile.html');
+    // Headers spéciaux pour mobile
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
-    // Vérifier l'existence avant envoi
-    fs.access(mobilePath, fs.constants.F_OK, (err) => {
+    // ENVOYER TOUJOURS la version complète admin.html même pour mobile
+    const desktopPath = path.join(__dirname, 'admin.html');
+    res.sendFile(desktopPath, (err) => {
       if (err) {
-        console.error(`❌ ERREUR /admin mobile: admin-mobile.html introuvable`);
-        // Fallback vers desktop
-        const desktopPath = path.join(__dirname, 'admin.html');
-        res.sendFile(desktopPath, (err2) => {
-          if (err2) {
-            console.error(`❌ ERREUR /admin fallback: admin.html aussi introuvable`);
-            res.status(500).json({
-              error: 'ENOENT - Fichiers admin introuvables',
-              requested: 'admin-mobile.html (mobile)',
-              fallback: 'admin.html (desktop)',
-              directory: __dirname
-            });
-          }
+        console.error(`❌ ERREUR /admin mobile: admin.html introuvable`);
+        res.status(500).json({
+          error: 'ENOENT - admin.html introuvable',
+          device: 'mobile',
+          directory: __dirname
         });
       } else {
-        console.log(`✅ Envoi admin-mobile.html depuis ${mobilePath}`);
-        res.sendFile(mobilePath);
+        console.log(`✅ admin.html v4.0 Ultra envoyé avec succès pour mobile`);
       }
     });
   } else {
-    console.log(`💻 Desktop détecté → Envoi admin.html`);
+    console.log(`💻 Desktop détecté → Envoi admin.html v4.0 Ultra`);
     const desktopPath = path.join(__dirname, 'admin.html');
     res.sendFile(desktopPath, (err) => {
       if (err) {
@@ -425,6 +420,8 @@ app.get('/admin', (req, res) => {
           path: desktopPath,
           directory: __dirname
         });
+      } else {
+        console.log(`✅ admin.html v4.0 Ultra envoyé avec succès pour desktop`);
       }
     });
   }
@@ -435,20 +432,24 @@ app.get('/admin2', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Route de TEST ALTERNATIVE pour contourner un éventuel blocage sur "/admin"
+// Route de TEST ALTERNATIVE - TOUJOURS version complète admin.html v4.0 Ultra
 app.get('/interface-admin', (req, res) => {
   console.log(`🔥 Route /interface-admin appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
   
   const userAgent = req.headers['user-agent'] || '';
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
+  // TOUJOURS envoyer admin.html v4.0 Ultra (même pour mobile)
   if (isMobile) {
-    console.log(`📱 Mobile détecté sur /interface-admin → Envoi admin-mobile.html`);
-    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+    console.log(`📱 Mobile détecté sur /interface-admin → Envoi admin.html v4.0 Ultra (version complète)`);
+    res.removeHeader('Content-Security-Policy');
+    res.removeHeader('X-Content-Security-Policy');
+    res.removeHeader('X-WebKit-CSP');
   } else {
-    console.log(`💻 Desktop détecté sur /interface-admin → Envoi admin.html`);
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    console.log(`💻 Desktop détecté sur /interface-admin → Envoi admin.html v4.0 Ultra`);
   }
+  
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // Route de DEBUG ANDROID simple
@@ -469,16 +470,24 @@ app.get('/test-minimal-android', (req, res) => {
   res.sendFile(path.join(__dirname, 'test-ultra-minimal.html'));
 });
 
-// Route ADMIN ANDROID SIMPLE (optimisé pour Android)
+// Route ADMIN ANDROID (redirigé vers la version complète v4.0 Ultra)
 app.get('/admin-android', (req, res) => {
-  console.log(`📱 Route admin Android ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  console.log(`📱 Route admin Android ! Redirection vers admin.html v4.0 Ultra`);
+  console.log(`📱 User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
   
-  // SUPPRIMER TOUTES LES RESTRICTIONS CSP
+  // SUPPRIMER TOUTES LES RESTRICTIONS CSP pour Android
   res.removeHeader('Content-Security-Policy');
   res.removeHeader('X-Content-Security-Policy');
   res.removeHeader('X-WebKit-CSP');
   
-  res.sendFile(path.join(__dirname, 'admin-android-simple.html'));
+  // Headers spéciaux pour Android
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  // REDIRECTION vers la version complète admin.html avec toutes les fonctionnalités v4.0
+  console.log(`🚀 Envoi admin.html v4.0 Ultra Enterprise pour Android`);
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // Route de diagnostic pour vérifier l'existence des fichiers
