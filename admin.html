@@ -775,25 +775,80 @@
             const client = allClients.find(c => c.id === clientId);
             if (!client) return;
 
+            // Décomposer le nom complet en prénom et nom
+            const fullName = client.name || '';
+            const nameParts = fullName.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+
+            // Décomposer l'adresse
+            const fullAddress = client.address || '';
+            const addressParts = fullAddress.split(',').map(part => part.trim());
+            const street = addressParts[0] || '';
+            const postalInfo = addressParts[1] || '';
+            const postalParts = postalInfo.split(' ');
+            const postalCode = postalParts[0] || '';
+            const city = postalParts.slice(1).join(' ') || '';
+
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-content">
+                <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
-                        <h3>Détails du client</h3>
+                        <h3>👤 Détails du client</h3>
                         <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
                     </div>
                     <div class="modal-body">
-                        <div class="client-detail"><strong>ID:</strong> ${client.id}</div>
-                        <div class="client-detail"><strong>Nom:</strong> ${client.name || '-'}</div>
-                        <div class="client-detail"><strong>Email:</strong> ${client.email || '-'}</div>
-                        <div class="client-detail"><strong>Téléphone:</strong> ${client.phone || '-'}</div>
-                        <div class="client-detail"><strong>CA Client:</strong> ${(client.total_revenue || 0).toFixed(2)}€</div>
-                        <div class="client-detail"><strong>Nb Commandes:</strong> ${client.total_orders || 0}</div>
-                        <div class="client-detail"><strong>Panier Moyen:</strong> ${client.total_orders > 0 ? ((client.total_revenue || 0) / client.total_orders).toFixed(2) + '€' : '0€'}</div>
-                        <div class="client-detail"><strong>Adresse:</strong> ${client.address || '-'}</div>
-                        <div class="client-detail"><strong>Date:</strong> ${new Date(client.created_at).toLocaleString('fr-FR')}</div>
-                        <div class="client-detail"><strong>Message:</strong> ${client.message || '-'}</div>
+                        <!-- Informations générales -->
+                        <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #1a202c; margin-bottom: 15px;">📋 Informations générales</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="client-detail"><strong>🆔 ID:</strong> #${client.id}</div>
+                                <div class="client-detail"><strong>📅 Date création:</strong> ${new Date(client.created_at).toLocaleDateString('fr-FR')}</div>
+                                <div class="client-detail"><strong>👤 Prénom:</strong> ${firstName || '-'}</div>
+                                <div class="client-detail"><strong>👤 Nom:</strong> ${lastName || '-'}</div>
+                                <div class="client-detail" style="grid-column: 1 / -1;"><strong>📧 Email:</strong> ${client.email || '-'}</div>
+                                <div class="client-detail"><strong>📱 Téléphone:</strong> ${client.phone || '-'}</div>
+                                <div class="client-detail"><strong>💬 Sujet:</strong> ${client.subject || '-'}</div>
+                            </div>
+                        </div>
+
+                        <!-- Adresse décomposée -->
+                        <div style="background: #edf2f7; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #1a202c; margin-bottom: 15px;">🏠 Adresse postale</h4>
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 15px;">
+                                <div class="client-detail"><strong>🛣️ Rue:</strong> ${street || '-'}</div>
+                                <div class="client-detail"><strong>📮 Code postal:</strong> ${postalCode || '-'}</div>
+                                <div class="client-detail"><strong>🏙️ Ville:</strong> ${city || '-'}</div>
+                                <div class="client-detail" style="grid-column: 1 / -1; margin-top: 10px; font-style: italic; color: #4a5568;">
+                                    <strong>📍 Adresse complète:</strong> ${fullAddress || '-'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations commerciales -->
+                        <div style="background: #e6fffa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #1a202c; margin-bottom: 15px;">💰 Informations commerciales</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                                <div class="client-detail"><strong>💰 CA Total:</strong> <span style="color: #38a169; font-weight: bold;">${(client.total_revenue || 0).toFixed(2)}€</span></div>
+                                <div class="client-detail"><strong>📦 Commandes:</strong> <span style="color: #3182ce; font-weight: bold;">${client.total_orders || 0}</span></div>
+                                <div class="client-detail"><strong>🛒 Panier moyen:</strong> <span style="color: #ed8936; font-weight: bold;">${client.total_orders > 0 ? ((client.total_revenue || 0) / client.total_orders).toFixed(2) + '€' : '0€'}</span></div>
+                                <div class="client-detail"><strong>💳 Méthode paiement:</strong> ${client.paymentmethod || '-'}</div>
+                                <div class="client-detail"><strong>🎟️ Code promo:</strong> ${client.promo_code || '-'}</div>
+                                <div class="client-detail"><strong>📄 Source:</strong> ${client.source || 'contact_form'}</div>
+                            </div>
+                        </div>
+
+                        <!-- Message et notes -->
+                        <div style="background: #fff5f5; padding: 20px; border-radius: 10px;">
+                            <h4 style="color: #1a202c; margin-bottom: 15px;">💬 Message et notes</h4>
+                            <div class="client-detail" style="line-height: 1.6;">
+                                <strong>Message:</strong><br>
+                                <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px; font-style: italic;">
+                                    ${client.message || 'Aucun message'}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1740,47 +1795,105 @@
             const client = allClients.find(c => c.id === clientId);
             if (!client) return;
 
+            // Décomposer le nom complet en prénom et nom
+            const fullName = client.name || '';
+            const nameParts = fullName.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+
+            // Décomposer l'adresse
+            const fullAddress = client.address || '';
+            const addressParts = fullAddress.split(',').map(part => part.trim());
+            const street = addressParts[0] || '';
+            const postalInfo = addressParts[1] || '';
+            const postalParts = postalInfo.split(' ');
+            const postalCode = postalParts[0] || '';
+            const city = postalParts.slice(1).join(' ') || '';
+
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-content" style="max-width: 700px;">
                     <div class="modal-header">
                         <h3>✏️ Modifier Client #${client.id}</h3>
                         <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
                     </div>
                     <div class="modal-body">
-                        <form id="edit-client-form" style="display: grid; gap: 15px;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">👤 Nom:</label>
-                                    <input type="text" id="edit-name" value="${client.name || ''}" class="input-field" style="width: 100%;">
+                        <form id="edit-client-form" style="display: grid; gap: 20px;">
+                            <!-- Informations personnelles -->
+                            <div style="background: #f8fafc; padding: 20px; border-radius: 10px;">
+                                <h4 style="color: #1a202c; margin-bottom: 15px;">👤 Informations personnelles</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">👤 Prénom:</label>
+                                        <input type="text" id="edit-firstname" value="${firstName}" class="input-field" style="width: 100%;" placeholder="Prénom">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">👤 Nom:</label>
+                                        <input type="text" id="edit-lastname" value="${lastName}" class="input-field" style="width: 100%;" placeholder="Nom de famille">
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">📧 Email:</label>
-                                    <input type="email" id="edit-email" value="${client.email}" class="input-field" style="width: 100%;" readonly>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">📧 Email:</label>
+                                        <input type="email" id="edit-email" value="${client.email}" class="input-field" style="width: 100%;" readonly>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">📱 Téléphone:</label>
+                                        <input type="tel" id="edit-phone" value="${client.phone || ''}" class="input-field" style="width: 100%;" placeholder="Ex: 01 23 45 67 89">
+                                    </div>
                                 </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">📱 Téléphone:</label>
-                                    <input type="tel" id="edit-phone" value="${client.phone || ''}" class="input-field" style="width: 100%;">
+
+                            <!-- Adresse postale décomposée -->
+                            <div style="background: #edf2f7; padding: 20px; border-radius: 10px;">
+                                <h4 style="color: #1a202c; margin-bottom: 15px;">🏠 Adresse postale</h4>
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">🛣️ Rue et numéro:</label>
+                                    <input type="text" id="edit-street" value="${street}" class="input-field" style="width: 100%;" placeholder="Ex: 123 Avenue des Champs-Élysées">
                                 </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">💰 CA Total:</label>
-                                    <input type="number" id="edit-revenue" value="${client.total_revenue || 0}" class="input-field" style="width: 100%;" step="0.01">
+                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">� Code postal:</label>
+                                        <input type="text" id="edit-postal" value="${postalCode}" class="input-field" style="width: 100%;" placeholder="Ex: 75008" pattern="[0-9]{5}">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">🏙️ Ville:</label>
+                                        <input type="text" id="edit-city" value="${city}" class="input-field" style="width: 100%;" placeholder="Ex: Paris">
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9rem; color: #4a5568; font-style: italic;">
+                                    💡 L'adresse complète sera automatiquement reconstituée
                                 </div>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">🏠 Adresse:</label>
-                                <input type="text" id="edit-address" value="${client.address || ''}" class="input-field" style="width: 100%;">
+
+                            <!-- Informations commerciales -->
+                            <div style="background: #e6fffa; padding: 20px; border-radius: 10px;">
+                                <h4 style="color: #1a202c; margin-bottom: 15px;">💰 Informations commerciales</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">💰 CA Total (€):</label>
+                                        <input type="number" id="edit-revenue" value="${client.total_revenue || 0}" class="input-field" style="width: 100%;" step="0.01" min="0">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">💬 Sujet:</label>
+                                        <input type="text" id="edit-subject" value="${client.subject || ''}" class="input-field" style="width: 100%;" placeholder="Sujet de contact">
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">💬 Message:</label>
-                                <textarea id="edit-message" class="input-field" style="width: 100%; min-height: 80px; resize: vertical;">${client.message || ''}</textarea>
+
+                            <!-- Message -->
+                            <div style="background: #fff5f5; padding: 20px; border-radius: 10px;">
+                                <h4 style="color: #1a202c; margin-bottom: 15px;">💬 Message et notes</h4>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #1a202c;">Message:</label>
+                                    <textarea id="edit-message" class="input-field" style="width: 100%; min-height: 100px; resize: vertical;" placeholder="Message du client ou notes internes...">${client.message || ''}</textarea>
+                                </div>
                             </div>
+
                             <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                                <button type="button" class="btn success" onclick="saveClientChanges(${client.id})" style="padding: 12px 25px;">✅ Sauvegarder</button>
-                                <button type="button" class="btn" onclick="this.closest('.modal-overlay').remove()" style="padding: 12px 25px;">❌ Annuler</button>
+                                <button type="button" class="btn success" onclick="saveClientChanges(${client.id})" style="padding: 15px 30px; font-size: 16px;">✅ Sauvegarder les modifications</button>
+                                <button type="button" class="btn" onclick="this.closest('.modal-overlay').remove()" style="padding: 15px 30px; font-size: 16px;">❌ Annuler</button>
                             </div>
                         </form>
                     </div>
@@ -1790,12 +1903,29 @@
         }
 
         async function saveClientChanges(clientId) {
+            // Récupérer les valeurs des champs séparés
+            const firstName = document.getElementById('edit-firstname').value.trim();
+            const lastName = document.getElementById('edit-lastname').value.trim();
+            const street = document.getElementById('edit-street').value.trim();
+            const postalCode = document.getElementById('edit-postal').value.trim();
+            const city = document.getElementById('edit-city').value.trim();
+
+            // Reconstituer le nom complet
+            const fullName = [firstName, lastName].filter(part => part).join(' ');
+            
+            // Reconstituer l'adresse complète
+            const fullAddress = [
+                street,
+                [postalCode, city].filter(part => part).join(' ')
+            ].filter(part => part).join(', ');
+
             const formData = {
-                name: document.getElementById('edit-name').value,
-                phone: document.getElementById('edit-phone').value,
+                name: fullName,
+                phone: document.getElementById('edit-phone').value.trim(),
                 total_revenue: parseFloat(document.getElementById('edit-revenue').value) || 0,
-                address: document.getElementById('edit-address').value,
-                message: document.getElementById('edit-message').value
+                address: fullAddress,
+                subject: document.getElementById('edit-subject').value.trim(),
+                message: document.getElementById('edit-message').value.trim()
             };
 
             try {
@@ -1818,7 +1948,7 @@
                         filteredClients = [...allClients];
                     }
                     
-                    showStatus('✅ Client mis à jour avec succès', 'success');
+                    showStatus('✅ Client mis à jour avec succès (Nom et adresse séparés reconstitués)', 'success');
                     
                     // Fermer le modal
                     document.querySelector('.modal-overlay').remove();
@@ -1833,6 +1963,19 @@
             } catch (error) {
                 showStatus('❌ Erreur sauvegarde: Fonction non implémentée côté serveur', 'warning');
                 console.error('Erreur sauvegarde:', error);
+                
+                // En cas d'erreur, mettre à jour localement quand même pour la démo
+                const clientIndex = allClients.findIndex(c => c.id === clientId);
+                if (clientIndex !== -1) {
+                    allClients[clientIndex] = { ...allClients[clientIndex], ...formData };
+                    filteredClients = [...allClients];
+                }
+                
+                showStatus('⚠️ Mise à jour locale uniquement (backend non connecté)', 'warning');
+                
+                // Fermer le modal et recharger l'affichage
+                document.querySelector('.modal-overlay').remove();
+                displayClients();
             }
         }
     </script>
