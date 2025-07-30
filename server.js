@@ -348,12 +348,12 @@ app.get('/admin', (req, res) => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
   if (isMobile) {
-    console.log(`📱 Mobile détecté → Envoi admin-android-simple.html`);
+    console.log(`📱 Mobile détecté → Envoi admin-mobile.html (version complète)`);
     // SUPPRIMER CSP pour mobile
     res.removeHeader('Content-Security-Policy');
     res.removeHeader('X-Content-Security-Policy');
     res.removeHeader('X-WebKit-CSP');
-    res.sendFile(path.join(__dirname, 'admin-android-simple.html'));
+    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
   } else {
     console.log(`💻 Desktop détecté → Envoi admin.html`);
     res.sendFile(path.join(__dirname, 'admin.html'));
