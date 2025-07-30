@@ -342,13 +342,16 @@ app.get('/admin-final.html', (req, res) => {
 
 // Route intelligente qui détecte mobile et redirige
 app.get('/admin', (req, res) => {
+  console.log(`🔥 Route /admin appelée ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  
   const userAgent = req.headers['user-agent'] || '';
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
   if (isMobile) {
-    console.log(`📱 Mobile détecté: ${userAgent.substring(0, 50)}...`);
+    console.log(`📱 Mobile détecté: ${userAgent.substring(0, 50)}... → Envoi admin-mobile.html`);
     res.sendFile(path.join(__dirname, 'admin-mobile.html'));
   } else {
+    console.log(`💻 Desktop détecté → Envoi admin.html`);
     res.sendFile(path.join(__dirname, 'admin.html'));
   }
 });
