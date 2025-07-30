@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin DS Parfum - Android</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 15px; 
+            background: #f5f5f5; 
+        }
+        .header { 
+            background: #333; 
+            color: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            margin-bottom: 15px;
+        }
+        .stats { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin-bottom: 15px; 
+        }
+        .stat { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            flex: 1; 
+            min-width: 120px; 
+            text-align: center; 
+            border: 1px solid #ddd;
+        }
+        .stat-number { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #333; 
+        }
+        .controls { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 15px; 
+            border: 1px solid #ddd;
+        }
+        .btn { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 5px; 
+            margin: 5px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            width: 100%;
+        }
+        .btn:active { background: #0056b3; }
+        .btn.success { background: #28a745; }
+        .btn.danger { background: #dc3545; }
+        .input { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+            font-size: 16px;
+        }
+        .clients { 
+            background: white; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            border: 1px solid #ddd;
+        }
+        .client-item { 
+            padding: 15px; 
+            border-bottom: 1px solid #eee; 
+        }
+        .client-item:last-child { border-bottom: none; }
+        .client-name { 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+        }
+        .client-email { 
+            color: #666; 
+            margin-bottom: 5px; 
+        }
+        .client-actions { 
+            margin-top: 10px; 
+        }
+        .btn-small { 
+            padding: 5px 10px; 
+            margin: 2px; 
+            font-size: 12px; 
+            width: auto; 
+            display: inline-block;
+        }
+        .loading { 
+            text-align: center; 
+            padding: 20px; 
+            color: #666; 
+        }
+        .debug { 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌟 Admin DS Parfum</h1>
+        <p>Interface mobile Android</p>
+    </div>
+
+    <div class="debug" id="debug">
+        📱 Initialisation...
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-number" id="total-clients">-</div>
+            <div>Clients</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number" id="total-revenue">-</div>
+            <div>CA Total</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number" id="server-status">🔴</div>
+            <div>Serveur</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="loadClients()">🔄 Charger les clients</button>
+        <button class="btn success" onclick="testConnection()">🔗 Test connexion</button>
+        <input type="text" class="input" id="search" placeholder="Rechercher un client..." onkeyup="filterClients()">
+    </div>
+
+    <div class="clients" id="clients-container">
+        <div class="loading">Cliquez sur "Charger les clients" pour commencer</div>
+    </div>
+
+    <script>
+        let allClients = [];
+        let filteredClients = [];
+
+        function updateDebug(message) {
+            const debug = document.getElementById('debug');
+            const timestamp = new Date().toLocaleTimeString();
+            debug.innerHTML = `📱 [${timestamp}] ${message}`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        updateDebug('Interface chargée');
+
+        function getApiUrl() {
+            return 'https://api.dsparfum.fr';
+        }
+
+        async function testConnection() {
+            updateDebug('Test de connexion...');
+            
+            try {
+                const response = await fetch(getApiUrl() + '/api/admin/clients', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById('server-status').textContent = '🟢';
+                    updateDebug('✅ Connexion OK');
+                } else {
+                    document.getElementById('server-status').textContent = '🟡';
+                    updateDebug(`⚠️ Erreur ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('server-status').textContent = '🔴';
+                updateDebug(`❌ Erreur: ${error.message}`);
+            }
+        }
+
+        async function loadClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '<div class="loading">⏳ Chargement...</div>';
+            
+            updateDebug('Chargement des clients...');
+            
+            try {
+                const response = await fetch(getApiUrl() + '/api/admin/clients');
+                updateDebug(`Réponse reçue: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const clients = Array.isArray(data) ? data : (data.clients || []);
+                
+                updateDebug(`${clients.length} clients reçus`);
+                
+                allClients = clients;
+                filteredClients = [...allClients];
+                
+                updateStats();
+                displayClients();
+                
+            } catch (error) {
+                updateDebug(`❌ Erreur: ${error.message}`);
+                container.innerHTML = `<div class="loading" style="color: red;">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        function updateStats() {
+            const total = allClients.length;
+            const revenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+            
+            document.getElementById('total-clients').textContent = total;
+            document.getElementById('total-revenue').textContent = revenue.toFixed(0) + '€';
+        }
+
+        function displayClients() {
+            const container = document.getElementById('clients-container');
+            
+            if (filteredClients.length === 0) {
+                container.innerHTML = '<div class="loading">Aucun client trouvé</div>';
+                return;
+            }
+            
+            let html = '';
+            filteredClients.slice(0, 20).forEach(client => {
+                html += `
+                    <div class="client-item">
+                        <div class="client-name">👤 ${client.name || 'Nom non défini'}</div>
+                        <div class="client-email">📧 ${client.email}</div>
+                        <div>💰 ${(client.total_revenue || 0).toFixed(0)}€</div>
+                        <div>📅 ${new Date(client.created_at).toLocaleDateString('fr-FR')}</div>
+                        <div class="client-actions">
+                            <button class="btn btn-small danger" onclick="deleteClient(${client.id})">🗑️ Supprimer</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            updateDebug(`Affichage de ${Math.min(filteredClients.length, 20)} clients`);
+        }
+
+        function filterClients() {
+            const search = document.getElementById('search').value.toLowerCase();
+            
+            filteredClients = allClients.filter(client => {
+                return !search || 
+                    (client.name && client.name.toLowerCase().includes(search)) ||
+                    (client.email && client.email.toLowerCase().includes(search));
+            });
+            
+            displayClients();
+        }
+
+        async function deleteClient(id) {
+            const client = allClients.find(c => c.id === id);
+            if (!client) return;
+            
+            if (!confirm(`Supprimer ${client.name || client.email} ?`)) return;
+            
+            updateDebug(`Suppression du client ${id}...`);
+            
+            try {
+                const response = await fetch(`${getApiUrl()}/api/admin/clients/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateDebug('✅ Client supprimé');
+                    loadClients(); // Recharger la liste
+                } else {
+                    updateDebug(`❌ Erreur: ${result.error}`);
+                }
+            } catch (error) {
+                updateDebug(`❌ Erreur suppression: ${error.message}`);
+            }
+        }
+
+        // Initialisation automatique
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDebug('DOM chargé - Détection: ' + navigator.userAgent.substring(0, 50));
+            testConnection();
+        });
+
+        // Capture des erreurs globales
+        window.addEventListener('error', (e) => {
+            updateDebug(`💥 ERREUR: ${e.message}`);
+        });
+    </script>
+</body>
+</html>

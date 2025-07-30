@@ -348,8 +348,12 @@ app.get('/admin', (req, res) => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
   if (isMobile) {
-    console.log(`📱 Mobile détecté: ${userAgent.substring(0, 50)}... → Envoi admin-mobile.html`);
-    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+    console.log(`📱 Mobile détecté → Envoi admin-android-simple.html`);
+    // SUPPRIMER CSP pour mobile
+    res.removeHeader('Content-Security-Policy');
+    res.removeHeader('X-Content-Security-Policy');
+    res.removeHeader('X-WebKit-CSP');
+    res.sendFile(path.join(__dirname, 'admin-android-simple.html'));
   } else {
     console.log(`💻 Desktop détecté → Envoi admin.html`);
     res.sendFile(path.join(__dirname, 'admin.html'));
@@ -393,6 +397,18 @@ app.get('/test-minimal-android', (req, res) => {
   res.removeHeader('X-WebKit-CSP');
   
   res.sendFile(path.join(__dirname, 'test-ultra-minimal.html'));
+});
+
+// Route ADMIN ANDROID SIMPLE (optimisé pour Android)
+app.get('/admin-android', (req, res) => {
+  console.log(`📱 Route admin Android ! User-Agent: ${req.headers['user-agent']?.substring(0, 100) || 'Non défini'}`);
+  
+  // SUPPRIMER TOUTES LES RESTRICTIONS CSP
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy');
+  res.removeHeader('X-WebKit-CSP');
+  
+  res.sendFile(path.join(__dirname, 'admin-android-simple.html'));
 });
 
 app.get('/admin-emergency', (req, res) => {
