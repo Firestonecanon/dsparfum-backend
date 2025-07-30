@@ -153,6 +153,28 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// === Route de santé API ===
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test de connexion PostgreSQL
+    const result = await pool.query('SELECT NOW() as server_time, COUNT(*) as client_count FROM clients');
+    
+    res.json({
+      status: 'healthy',
+      database: 'PostgreSQL connected',
+      server_time: result.rows[0].server_time,
+      clients_count: result.rows[0].client_count,
+      uptime: process.uptime()
+    });
+  } catch (error) {
+    console.error('❌ Health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error.message
+    });
+  }
+});
+
 // === Route de contact PostgreSQL ===
 app.post('/api/contact', async (req, res) => {
   console.log('📨 Nouveau contact reçu:', req.body);
