@@ -1,0 +1,3 @@
+🚀 Fix déploiement mobile - 30/07/2025 23:50
+Correction erreur ENOENT admin-mobile.html
+Assurer la présence de tous les fichiers HTML sur Render
