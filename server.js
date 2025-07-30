@@ -278,7 +278,525 @@ app.get('/admin.html', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  const adminHtml = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Admin DS Parfum - Interface d'Urgence</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #e53e3e 0%, #ff6b6b 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #3182ce;
+            min-width: 120px;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #3182ce;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .clients-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .clients-table th {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .clients-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        
+        .clients-table tr:hover {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+        
+        .clients-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .client-id {
+            font-weight: bold;
+            color: #3182ce;
+            background: #ebf8ff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .client-email {
+            color: #2d3748;
+            font-weight: 500;
+        }
+        
+        .client-phone {
+            color: #4a5568;
+            font-family: monospace;
+        }
+        
+        .client-address {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #4a5568;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .client-address:hover {
+            color: #3182ce;
+        }
+        
+        .client-date {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        .loading::before {
+            content: '⏳';
+            display: block;
+            font-size: 3rem;
+            margin-bottom: 15px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #e53e3e;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #38a169;
+            margin: 20px 0;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: modalShow 0.3s ease;
+        }
+        
+        @keyframes modalShow {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #e53e3e;
+        }
+        
+        @media (max-width: 768px) {
+            .container { margin: 10px; border-radius: 15px; }
+            .header h1 { font-size: 1.8rem; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .stats { justify-content: center; }
+            .clients-table { font-size: 0.9rem; }
+            .clients-table th, .clients-table td { padding: 12px 8px; }
+            .btn { padding: 10px 16px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Interface Admin d'Urgence</h1>
+            <p>Accès temporaire sécurisé - Render cache bypass</p>
+        </div>
+        
+        <div class="controls">
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-number" id="clientCount">-</span>
+                    <div class="stat-label">Clients</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="lastUpdate">-</span>
+                    <div class="stat-label">Dernière MAJ</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="loadClients()">
+                    🔄 Actualiser
+                </button>
+                <button class="btn btn-success" onclick="exportData()">
+                    💾 Exporter
+                </button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="clientsContainer">
+                <div class="loading">Chargement des clients...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour détails client -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>🔍 Détails du Client</h2>
+            <div id="clientDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        let allClients = [];
+        
+        async function loadClients() {
+            const container = document.getElementById('clientsContainer');
+            const countElement = document.getElementById('clientCount');
+            const updateElement = document.getElementById('lastUpdate');
+            
+            container.innerHTML = '<div class="loading">Chargement des clients...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/clients');
+                const clients = await response.json();
+                allClients = clients;
+                
+                // Mettre à jour les stats
+                countElement.textContent = clients.length;
+                updateElement.textContent = new Date().toLocaleTimeString('fr-FR');
+                
+                if (!clients || clients.length === 0) {
+                    container.innerHTML = '<div class="error">❌ Aucun client trouvé dans la base de données</div>';
+                    return;
+                }
+
+                let html = '<table class="clients-table"><thead><tr>';
+                html += '<th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Date</th><th>Actions</th>';
+                html += '</tr></thead><tbody>';
+
+                clients.forEach(client => {
+                    const date = new Date(client.created_at).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit', 
+                        year: 'numeric'
+                    });
+                    const address = client.address || '-';
+                    const shortAddress = address.length > 30 ? address.substring(0, 30) + '...' : address;
+                    
+                    html += '<tr>';
+                    html += '<td><span class="client-id">#' + client.id + '</span></td>';
+                    html += '<td><strong>' + (client.name || '-') + '</strong></td>';
+                    html += '<td class="client-email">' + (client.email || '-') + '</td>';
+                    html += '<td class="client-phone">' + (client.phone || '-') + '</td>';
+                    html += '<td class="client-address" onclick="showClientDetails(' + client.id + ')" title="' + address + '">' + shortAddress + '</td>';
+                    html += '<td class="client-date">' + date + '</td>';
+                    html += '<td>';
+                    html += '<button class="btn btn-primary btn-small" onclick="showClientDetails(' + client.id + ')" title="Voir détails">👁️</button> ';
+                    html += '<button class="btn btn-danger btn-small" onclick="deleteClient(' + client.id + ')" title="Supprimer">🗑️</button>';
+                    html += '</td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+                
+            } catch (error) {
+                container.innerHTML = '<div class="error">❌ Erreur de connexion: ' + error.message + '</div>';
+                console.error('Erreur:', error);
+            }
+        }
+        
+        function showClientDetails(clientId) {
+            const client = allClients.find(c => c.id === clientId);
+            if (!client) return;
+            
+            const modal = document.getElementById('clientModal');
+            const details = document.getElementById('clientDetails');
+            
+            details.innerHTML = \`
+                <div style="display: grid; gap: 15px; margin-top: 20px;">
+                    <div><strong>🆔 ID:</strong> #\${client.id}</div>
+                    <div><strong>👤 Nom:</strong> \${client.name || '-'}</div>
+                    <div><strong>📧 Email:</strong> \${client.email || '-'}</div>
+                    <div><strong>📱 Téléphone:</strong> \${client.phone || '-'}</div>
+                    <div><strong>🏠 Adresse:</strong> \${client.address || '-'}</div>
+                    <div><strong>📝 Sujet:</strong> \${client.subject || '-'}</div>
+                    <div><strong>💬 Message:</strong> \${client.message || '-'}</div>
+                    <div><strong>💳 Paiement:</strong> \${client.paymentmethod || '-'}</div>
+                    <div><strong>💰 Montant:</strong> \${client.total_amount || '0'}€</div>
+                    <div><strong>🎟️ Code promo:</strong> \${client.promo_code || '-'}</div>
+                    <div><strong>📅 Créé le:</strong> \${new Date(client.created_at).toLocaleString('fr-FR')}</div>
+                    <div><strong>🔄 Modifié le:</strong> \${client.updated_at ? new Date(client.updated_at).toLocaleString('fr-FR') : '-'}</div>
+                </div>
+            \`;
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('clientModal').style.display = 'none';
+        }
+        
+        async function deleteClient(id) {
+            if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer ce client ?\\n\\nCette action est irréversible !')) return;
+            
+            try {
+                const response = await fetch('/api/admin/clients/' + id, { method: 'DELETE' });
+                if (response.ok) {
+                    showNotification('✅ Client supprimé avec succès !', 'success');
+                    loadClients();
+                } else {
+                    showNotification('❌ Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Erreur: ' + error.message, 'error');
+            }
+        }
+        
+        async function exportData() {
+            try {
+                const response = await fetch('/api/admin/backup');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'dsparfum_clients_' + new Date().toISOString().split('T')[0] + '.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showNotification('💾 Export terminé !', 'success');
+            } catch (error) {
+                showNotification('❌ Erreur export: ' + error.message, 'error');
+            }
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = type;
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '1001';
+            notification.style.padding = '15px 20px';
+            notification.style.borderRadius = '8px';
+            notification.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+        
+        // Fermer modal en cliquant outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('clientModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Charger au démarrage
+        loadClients();
+        
+        // Auto-refresh toutes les 30 secondes
+        setInterval(loadClients, 30000);
+    </script>
+</body>
+</html>`;
+  
+  res.send(adminHtml);
 });
 
 // Route alias pour compatibilité frontend
