@@ -288,12 +288,20 @@
                 <div class="label">👥 Total Clients</div>
             </div>
             <div class="stat-card">
-                <div class="number" id="recent-clients">-</div>
-                <div class="label">🆕 Nouveaux (7j)</div>
+                <div class="number" id="total-revenue">-</div>
+                <div class="label">💰 CA Total</div>
             </div>
             <div class="stat-card">
-                <div class="number" id="total-orders">-</div>
-                <div class="label">🛍️ Commandes</div>
+                <div class="number" id="avg-basket">-</div>
+                <div class="label">🛒 Panier Moyen</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="monthly-revenue">-</div>
+                <div class="label">� CA Mensuel</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="recent-clients">-</div>
+                <div class="label">🆕 Nouveaux (7j)</div>
             </div>
             <div class="stat-card">
                 <div class="number" id="server-status">🟢</div>
@@ -313,11 +321,12 @@
                     <input type="text" class="input-field" id="search-input" placeholder="Rechercher..." onkeyup="filterClients()">
                 </div>
                 <div class="filter-group">
-                    <label>📅</label>
-                    <select class="input-field" id="date-filter" onchange="filterClients()">
-                        <option value="all">Toutes les périodes</option>
-                        <option value="week">Cette semaine</option>
-                        <option value="month">Ce mois</option>
+                    <label>�</label>
+                    <select class="input-field" id="revenue-filter" onchange="filterClients()">
+                        <option value="all">Tous les CA</option>
+                        <option value="high">CA > 100€</option>
+                        <option value="medium">CA 50-100€</option>
+                        <option value="low">CA < 50€</option>
                     </select>
                 </div>
             </div>
@@ -378,12 +387,22 @@
 
         function updateStatistics() {
             const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            
             const recentClients = allClients.filter(c => new Date(c.created_at) > weekAgo).length;
+            const totalRevenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
             const totalOrders = allClients.reduce((sum, c) => sum + (c.total_orders || 0), 0);
+            const monthlyRevenue = allClients
+                .filter(c => new Date(c.created_at) > monthAgo)
+                .reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+            
+            const avgBasket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
             document.getElementById('total-clients').textContent = allClients.length;
+            document.getElementById('total-revenue').textContent = totalRevenue.toFixed(0) + '€';
+            document.getElementById('avg-basket').textContent = avgBasket.toFixed(0) + '€';
+            document.getElementById('monthly-revenue').textContent = monthlyRevenue.toFixed(0) + '€';
             document.getElementById('recent-clients').textContent = recentClients;
-            document.getElementById('total-orders').textContent = totalOrders;
         }
 
         function displayClients() {
@@ -397,18 +416,21 @@
                 return;
             }
 
-            let html = '<table class="clients-table"><tr><th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Date</th><th>Status</th><th>Actions</th></tr>';
+            let html = '<table class="clients-table"><tr><th>ID</th><th>Nom</th><th>Email</th><th>CA Client</th><th>Commandes</th><th>Date</th><th>Status</th><th>Actions</th></tr>';
             
             clientsToShow.forEach(client => {
                 const createdDate = new Date(client.created_at);
                 const isRecent = (Date.now() - createdDate) < (7 * 24 * 60 * 60 * 1000);
                 const statusBadge = isRecent ? '<span class="badge recent">Nouveau</span>' : '<span class="badge old">Ancien</span>';
+                const clientRevenue = client.total_revenue || 0;
+                const clientOrders = client.total_orders || 0;
                 
                 html += `<tr>
                     <td><strong>#${client.id}</strong></td>
                     <td>${client.name || 'N/A'}</td>
                     <td>${client.email}</td>
-                    <td>${client.phone || '-'}</td>
+                    <td><strong>${clientRevenue.toFixed(2)}€</strong></td>
+                    <td>${clientOrders}</td>
                     <td>${createdDate.toLocaleDateString('fr-FR')}</td>
                     <td>${statusBadge}</td>
                     <td>
@@ -451,27 +473,26 @@
 
         function filterClients() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
-            const dateFilter = document.getElementById('date-filter').value;
+            const revenueFilter = document.getElementById('revenue-filter').value;
             
             filteredClients = allClients.filter(client => {
                 const matchesSearch = !searchTerm || 
                     client.name?.toLowerCase().includes(searchTerm) ||
                     client.email?.toLowerCase().includes(searchTerm);
                 
-                let matchesDate = true;
-                if (dateFilter !== 'all') {
-                    const clientDate = new Date(client.created_at);
-                    const now = new Date();
-                    if (dateFilter === 'week') {
-                        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        matchesDate = clientDate > weekAgo;
-                    } else if (dateFilter === 'month') {
-                        matchesDate = clientDate.getMonth() === now.getMonth() && 
-                                     clientDate.getFullYear() === now.getFullYear();
+                let matchesRevenue = true;
+                if (revenueFilter !== 'all') {
+                    const revenue = client.total_revenue || 0;
+                    if (revenueFilter === 'high') {
+                        matchesRevenue = revenue > 100;
+                    } else if (revenueFilter === 'medium') {
+                        matchesRevenue = revenue >= 50 && revenue <= 100;
+                    } else if (revenueFilter === 'low') {
+                        matchesRevenue = revenue < 50;
                     }
                 }
                 
-                return matchesSearch && matchesDate;
+                return matchesSearch && matchesRevenue;
             });
             
             currentPage = 1;
@@ -495,6 +516,9 @@
                         <div class="client-detail"><strong>Nom:</strong> ${client.name || '-'}</div>
                         <div class="client-detail"><strong>Email:</strong> ${client.email || '-'}</div>
                         <div class="client-detail"><strong>Téléphone:</strong> ${client.phone || '-'}</div>
+                        <div class="client-detail"><strong>CA Client:</strong> ${(client.total_revenue || 0).toFixed(2)}€</div>
+                        <div class="client-detail"><strong>Nb Commandes:</strong> ${client.total_orders || 0}</div>
+                        <div class="client-detail"><strong>Panier Moyen:</strong> ${client.total_orders > 0 ? ((client.total_revenue || 0) / client.total_orders).toFixed(2) + '€' : '0€'}</div>
                         <div class="client-detail"><strong>Adresse:</strong> ${client.address || '-'}</div>
                         <div class="client-detail"><strong>Date:</strong> ${new Date(client.created_at).toLocaleString('fr-FR')}</div>
                         <div class="client-detail"><strong>Message:</strong> ${client.message || '-'}</div>
@@ -640,27 +664,55 @@
             const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             
-            const weeklyClients = allClients.filter(c => new Date(c.created_at) > weekAgo).length;
-            const monthlyClients = allClients.filter(c => new Date(c.created_at) > monthAgo).length;
+            const weeklyClients = allClients.filter(c => new Date(c.created_at) > weekAgo);
+            const monthlyClients = allClients.filter(c => new Date(c.created_at) > monthAgo);
+            
+            const weeklyRevenue = weeklyClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+            const monthlyRevenue = monthlyClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+            const totalRevenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+            
+            const topClients = [...allClients]
+                .sort((a, b) => (b.total_revenue || 0) - (a.total_revenue || 0))
+                .slice(0, 5);
+            
+            let topClientsHtml = '';
+            topClients.forEach((client, index) => {
+                topClientsHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 10px; background: ${index % 2 ? '#f8fafc' : 'white'}; border-radius: 8px; margin-bottom: 8px;">
+                        <span><strong>#${index + 1}</strong> ${client.name || client.email}</span>
+                        <span style="color: #667eea; font-weight: bold;">${(client.total_revenue || 0).toFixed(2)}€</span>
+                    </div>
+                `;
+            });
             
             container.innerHTML = `
                 <div style="padding: 40px; background: #f8fafc; border-radius: 20px;">
-                    <h3 style="margin-bottom: 30px;">📈 Analytics</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
-                            <h4>Cette semaine</h4>
-                            <div style="font-size: 2rem; color: #667eea;">${weeklyClients}</div>
-                            <p>nouveaux clients</p>
+                    <h3 style="margin-bottom: 30px;">📈 Analytics Détaillées</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-bottom: 30px;">
+                        <div style="background: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                            <h4 style="color: #1a202c; margin-bottom: 10px;">💰 CA Total</h4>
+                            <div style="font-size: 2.5rem; color: #667eea; font-weight: bold; margin-bottom: 5px;">${totalRevenue.toFixed(0)}€</div>
+                            <p style="color: #4a5568;">Chiffre d'affaires global</p>
                         </div>
-                        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
-                            <h4>Ce mois</h4>
-                            <div style="font-size: 2rem; color: #38a169;">${monthlyClients}</div>
-                            <p>nouveaux clients</p>
+                        <div style="background: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                            <h4 style="color: #1a202c; margin-bottom: 10px;">📅 CA Mensuel</h4>
+                            <div style="font-size: 2.5rem; color: #38a169; font-weight: bold; margin-bottom: 5px;">${monthlyRevenue.toFixed(0)}€</div>
+                            <p style="color: #4a5568;">${monthlyClients.length} clients ce mois</p>
                         </div>
+                        <div style="background: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                            <h4 style="color: #1a202c; margin-bottom: 10px;">📊 CA Hebdo</h4>
+                            <div style="font-size: 2.5rem; color: #ed8936; font-weight: bold; margin-bottom: 5px;">${weeklyRevenue.toFixed(0)}€</div>
+                            <p style="color: #4a5568;">${weeklyClients.length} clients cette semaine</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                        <h4 style="color: #1a202c; margin-bottom: 20px;">🏆 Top 5 Clients (CA)</h4>
+                        ${topClientsHtml || '<p style="color: #4a5568; text-align: center;">Aucun client avec CA</p>'}
                     </div>
                 </div>
             `;
-            showStatus('📈 Analytics générées', 'success');
+            showStatus('📈 Analytics générées avec CA', 'success');
         }
 
         function showSettings() {
