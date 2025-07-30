@@ -588,7 +588,7 @@ app.get('/admin', (req, res) => {
                 '</div>';
             
             html += '<table class="clients-table"><thead><tr>';
-            html += '<th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Message</th><th>Total</th><th>Source</th><th>Date</th><th>Actions</th>';
+            html += '<th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Message</th><th>Total</th><th>Source</th><th>Date</th><th>Actions</th>';
             html += '</tr></thead><tbody>';
 
             clients.forEach(client => {
@@ -602,6 +602,7 @@ app.get('/admin', (req, res) => {
                 html += '<td>' + (client.name || '-') + '</td>';
                 html += '<td>' + (client.email || '-') + '</td>';
                 html += '<td>' + (client.phone || '-') + '</td>';
+                html += '<td>' + (client.address || '-') + '</td>';
                 html += '<td>' + (client.message ? client.message.substring(0, 50) + '...' : '-') + '</td>';
                 html += '<td>' + total + '</td>';
                 html += '<td>' + source + '</td>';
