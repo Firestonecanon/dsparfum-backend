@@ -277,7 +277,7 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get('/admin-emergency', (req, res) => {
   const adminHtml = `
 <!DOCTYPE html>
 <html lang="fr">
