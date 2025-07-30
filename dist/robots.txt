@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://dulcet-sunflower-47b921.netlify.app/sitemap.xml
