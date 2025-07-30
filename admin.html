@@ -405,6 +405,7 @@
                 <th>Nom</th>
                 <th>Email</th>
                 <th>Téléphone</th>
+                <th>Adresse</th>
                 <th>Commandes</th>
                 <th>Date création</th>
                 <th>Status</th>
@@ -423,6 +424,7 @@
                     <td>${highlightSearch(client.name || 'N/A')}</td>
                     <td>${highlightSearch(client.email)}</td>
                     <td>${client.phone || '-'}</td>
+                    <td>${client.address || '-'}</td>
                     <td><strong>${client.total_orders || 0}</strong></td>
                     <td>${createdDate.toLocaleDateString('fr-FR')}</td>
                     <td>${statusBadge}</td>
