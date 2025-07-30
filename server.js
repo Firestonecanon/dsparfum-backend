@@ -273,6 +273,10 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // === Routes Admin PostgreSQL ===
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 app.get('/admin', (req, res) => {
   const adminHtml = `
 <!DOCTYPE html>
