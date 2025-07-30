@@ -277,6 +277,87 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Route spéciale MOBILE avec détection User-Agent
+app.get('/admin-mobile.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+});
+
+// Route de TEST MOBILE (sans CSP)
+app.get('/admin-test-mobile.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-test-mobile.html'));
+});
+
+// Route de TEST MINIMAL (absolument aucune restriction)
+app.get('/test-minimal.html', (req, res) => {
+  // FORCER LA DÉSACTIVATION DE TOUTE CSP
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy');
+  res.removeHeader('X-WebKit-CSP');
+  
+  // Headers pour forcer l'absence de sécurité
+  res.setHeader('Content-Security-Policy', 'default-src * \'unsafe-inline\' \'unsafe-eval\' data: blob:; script-src * \'unsafe-inline\' \'unsafe-eval\'; style-src * \'unsafe-inline\'; img-src * data: blob:; connect-src *;');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  
+  console.log(`📱 Serving test-minimal.html to: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  res.sendFile(path.join(__dirname, 'test-minimal.html'));
+});
+
+// Route TEST SIMPLE (diagnostic complet)
+app.get('/test-simple.html', (req, res) => {
+  console.log(`🔧 Serving test-simple.html to: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  res.sendFile(path.join(__dirname, 'test-simple.html'));
+});
+
+// Route FAVICON pour éviter les erreurs CSP
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).send(); // No Content - pas de favicon
+});
+
+// Route ADMIN MOBILE FIX (version finale)
+app.get('/admin-mobile-fix.html', (req, res) => {
+  console.log(`📱 Serving admin-mobile-fix.html to: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  res.sendFile(path.join(__dirname, 'admin-mobile-fix.html'));
+});
+
+// Route ADMIN FINAL (version ultime sans CSP)
+app.get('/admin-final.html', (req, res) => {
+  // FORCER L'ABSENCE TOTALE DE CSP AVEC HEADERS HTTP
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy');
+  res.removeHeader('X-WebKit-CSP');
+  
+  // Headers permissifs pour mobile
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  // CSP ultra-permissive en last resort
+  res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: filesystem: about: ws: wss: 'unsafe-dynamic'; script-src * 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; object-src *; style-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; media-src *; frame-src *; font-src *; connect-src *;");
+  
+  console.log(`🌟 Serving admin-final.html (NO CSP) to: ${req.headers['user-agent']?.substring(0, 50) || 'Unknown'}`);
+  res.sendFile(path.join(__dirname, 'admin-final.html'));
+});
+
+// Route intelligente qui détecte mobile et redirige
+app.get('/admin', (req, res) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  
+  if (isMobile) {
+    console.log(`📱 Mobile détecté: ${userAgent.substring(0, 50)}...`);
+    res.sendFile(path.join(__dirname, 'admin-mobile.html'));
+  } else {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+  }
+});
+
+// Route de secours pour l'admin en cas de problème avec admin.html
+app.get('/admin2', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 app.get('/admin-emergency', (req, res) => {
   const adminHtml = `
 <!DOCTYPE html>

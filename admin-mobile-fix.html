@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- DÉSACTIVER COMPLÈTEMENT LE FAVICON -->
+<link rel="icon" href="data:,">
+<title>Admin Mobile Fix</title>
+<style>
+body{font:16px Arial;margin:10px;background:#f5f5f5;}
+.header{background:#007bff;color:white;padding:15px;border-radius:8px;text-align:center;margin-bottom:20px;}
+.card{background:white;padding:20px;border-radius:8px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.btn{background:#28a745;color:white;border:none;padding:12px 20px;border-radius:6px;margin:5px;cursor:pointer;font-size:14px;min-width:120px;}
+.btn:active{background:#1e7e34;transform:scale(0.98);}
+.btn.primary{background:#007bff;}
+.btn.primary:active{background:#0056b3;}
+.btn.danger{background:#dc3545;}
+.btn.danger:active{background:#bd2130;}
+.status{padding:10px;margin:10px 0;border-radius:4px;font-weight:bold;}
+.status.success{background:#d4edda;color:#155724;border:1px solid #c3e6cb;}
+.status.error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;}
+.status.info{background:#d1ecf1;color:#0c5460;border:1px solid #bee5eb;}
+.clients{max-height:300px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;}
+.client-row{padding:8px;border-bottom:1px solid #eee;font-size:13px;}
+.client-row:nth-child(even){background:#f8f9fa;}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>🌟 Admin DS Parfum Mobile</h1>
+<p>Interface mobile sans restrictions</p>
+</div>
+
+<div class="card">
+<h3>🔧 Contrôles</h3>
+<div>
+<button class="btn primary" onclick="loadClients()">📊 Charger Clients</button>
+<button class="btn" onclick="exportData()">💾 Export</button>
+<button class="btn danger" onclick="clearData()">🗑️ Clear</button>
+</div>
+</div>
+
+<div class="card">
+<h3>📈 Statistiques</h3>
+<div id="stats">
+<div class="status info">Aucune donnée chargée</div>
+</div>
+</div>
+
+<div class="card">
+<h3>👥 Clients</h3>
+<div id="clients">
+<div class="status info">Cliquez sur "Charger Clients" pour voir les données</div>
+</div>
+</div>
+
+<div class="card">
+<h3>📱 Statut</h3>
+<div id="status">
+<div class="status info">Interface initialisée</div>
+</div>
+</div>
+
+<script>
+let allClients = [];
+
+function updateStatus(message, type = 'info') {
+  const statusDiv = document.getElementById('status');
+  const timestamp = new Date().toLocaleTimeString();
+  statusDiv.innerHTML = `<div class="status ${type}">[${timestamp}] ${message}</div>`;
+  console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+function getApiUrl() {
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname.startsWith('192.168.')) {
+    return window.location.origin;
+  }
+  return 'https://api.dsparfum.fr';
+}
+
+async function loadClients() {
+  updateStatus('Chargement des clients...', 'info');
+  const apiUrl = getApiUrl();
+  
+  try {
+    const response = await fetch(`${apiUrl}/api/admin/clients`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    allClients = Array.isArray(data) ? data : (data.clients || []);
+    
+    updateStatus(`✅ ${allClients.length} clients chargés`, 'success');
+    displayStats();
+    displayClients();
+    
+  } catch (error) {
+    updateStatus(`❌ Erreur: ${error.message}`, 'error');
+    console.error('Erreur détaillée:', error);
+  }
+}
+
+function displayStats() {
+  const total = allClients.length;
+  const totalRevenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+  const avgRevenue = total > 0 ? (totalRevenue / total).toFixed(2) : 0;
+  
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recent = allClients.filter(c => new Date(c.created_at) > weekAgo).length;
+  
+  document.getElementById('stats').innerHTML = `
+    <div class="status success">
+      📊 <strong>${total}</strong> clients total<br>
+      💰 <strong>${totalRevenue.toFixed(2)}€</strong> CA total<br>
+      📈 <strong>${avgRevenue}€</strong> CA moyen<br>
+      🆕 <strong>${recent}</strong> nouveaux (7j)
+    </div>
+  `;
+}
+
+function displayClients() {
+  const clientsDiv = document.getElementById('clients');
+  
+  if (allClients.length === 0) {
+    clientsDiv.innerHTML = '<div class="status info">Aucun client trouvé</div>';
+    return;
+  }
+  
+  let html = '<div class="clients">';
+  allClients.slice(0, 50).forEach(client => {
+    const revenue = (client.total_revenue || 0).toFixed(2);
+    const date = new Date(client.created_at).toLocaleDateString('fr-FR');
+    html += `
+      <div class="client-row">
+        <strong>#${client.id}</strong> ${client.name || 'N/A'}<br>
+        📧 ${client.email}<br>
+        💰 ${revenue}€ | 📅 ${date}
+      </div>
+    `;
+  });
+  html += '</div>';
+  
+  if (allClients.length > 50) {
+    html += `<div class="status info">Affichage des 50 premiers sur ${allClients.length}</div>`;
+  }
+  
+  clientsDiv.innerHTML = html;
+}
+
+function exportData() {
+  if (allClients.length === 0) {
+    updateStatus('⚠️ Aucune donnée à exporter', 'error');
+    return;
+  }
+  
+  try {
+    const dataStr = JSON.stringify(allClients, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dsparfum-mobile-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    updateStatus('✅ Export terminé', 'success');
+  } catch (error) {
+    updateStatus(`❌ Erreur export: ${error.message}`, 'error');
+  }
+}
+
+function clearData() {
+  allClients = [];
+  document.getElementById('stats').innerHTML = '<div class="status info">Données effacées</div>';
+  document.getElementById('clients').innerHTML = '<div class="status info">Données effacées</div>';
+  updateStatus('🗑️ Données effacées', 'info');
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+  updateStatus(`🚀 Interface mobile initialisée (API: ${getApiUrl()})`, 'success');
+  
+  // Test de connectivité automatique
+  setTimeout(() => {
+    updateStatus('🔍 Test de connectivité automatique...', 'info');
+    loadClients();
+  }, 1000);
+});
+
+// Gestion des erreurs
+window.addEventListener('error', function(e) {
+  updateStatus(`💥 Erreur JS: ${e.message}`, 'error');
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+  updateStatus(`💥 Promesse rejetée: ${e.reason}`, 'error');
+});
+</script>
+
+</body>
+</html>

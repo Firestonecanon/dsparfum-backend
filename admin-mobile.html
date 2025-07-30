@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP ULTRA-PERMISSIVE POUR MOBILE AVEC FAVICON -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob: http: https:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob: http: https:; connect-src * http: https:; font-src * data: blob: http: https:;">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌟</text></svg>">
+    <title>🌟 Admin DS Parfum - Mobile Ultra</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); 
+            min-height: 100vh; 
+            padding: 10px; 
+        }
+        .container { 
+            max-width: 100%;
+            margin: 0 auto; 
+            background: rgba(255,255,255,0.98); 
+            border-radius: 15px; 
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15); 
+            overflow: hidden; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            font-size: 1.8rem; 
+            margin-bottom: 10px; 
+            font-weight: 800; 
+        }
+        .admin-nav { 
+            display: flex; 
+            gap: 8px; 
+            justify-content: center; 
+            margin-top: 15px; 
+            flex-wrap: wrap; 
+        }
+        .nav-btn { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            padding: 8px 12px; 
+            border-radius: 20px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 12px;
+            transition: all 0.3s ease; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-btn:hover, .nav-btn:active { transform: translateY(-2px); }
+        .nav-btn.active { background: linear-gradient(135deg, #38a169 0%, #48bb78 100%); }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 10px; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+        }
+        .stat-card { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+            text-align: center; 
+            transition: all 0.3s ease; 
+        }
+        .stat-card .number { 
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            color: #667eea; 
+            margin-bottom: 5px; 
+        }
+        .stat-card .label { 
+            color: #4a5568; 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            font-weight: 600; 
+        }
+        .admin-section { 
+            padding: 15px; 
+            border-bottom: 1px solid rgba(226,232,240,0.5); 
+        }
+        .admin-section h2 { 
+            color: #1a202c; 
+            margin-bottom: 15px; 
+            font-size: 1.3rem; 
+            font-weight: 700; 
+        }
+        .controls { 
+            display: flex; 
+            flex-direction: column;
+            gap: 10px; 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+            border-radius: 12px; 
+        }
+        .btn { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600; 
+            transition: all 0.3s ease; 
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .btn:hover, .btn:active { transform: translateY(-2px); }
+        .btn.success { background: linear-gradient(135deg, #38a169 0%, #48bb78 100%); }
+        .btn.danger { background: linear-gradient(135deg, #e53e3e 0%, #fc8181 100%); }
+        .btn.warning { background: linear-gradient(135deg, #ed8936 0%, #f6ad55 100%); }
+        .input-field { 
+            padding: 12px 15px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            width: 100%;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        .filter-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: rgba(255,255,255,0.8); 
+            padding: 10px; 
+            border-radius: 8px; 
+        }
+        .clients-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+            background: white; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            font-size: 12px;
+        }
+        .clients-table th, .clients-table td { 
+            padding: 8px 6px; 
+            text-align: left; 
+            border-bottom: 1px solid rgba(226,232,240,0.5); 
+        }
+        .clients-table th { 
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); 
+            color: white; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            font-size: 10px;
+        }
+        .clients-table tr:hover { background: #f7fafc; }
+        .loading { 
+            text-align: center; 
+            padding: 40px 20px; 
+            color: #4a5568; 
+            font-size: 1rem; 
+            background: #f8fafc; 
+            border-radius: 12px; 
+            margin: 15px 0; 
+        }
+        .badge { 
+            padding: 4px 8px; 
+            border-radius: 12px; 
+            font-size: 0.6rem; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+        }
+        .badge.recent { background: #c6f6d5; color: #22543d; }
+        .badge.old { background: #fed7d7; color: #742a2a; }
+        .backup-info { 
+            background: #ebf8ff; 
+            border: 2px solid rgba(59,130,246,0.3); 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            display: none;
+            font-size: 14px;
+        }
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            display: none;
+        }
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        .modal-content { 
+            background: white; 
+            border-radius: 15px; 
+            max-width: 95vw; 
+            width: 95%; 
+            max-height: 85vh; 
+            overflow: hidden; 
+        }
+        .modal-header { 
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); 
+            color: white; 
+            padding: 15px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .close-btn { 
+            background: rgba(255,255,255,0.1); 
+            border: 2px solid rgba(255,255,255,0.2); 
+            color: white; 
+            cursor: pointer; 
+            width: 30px; 
+            height: 30px; 
+            border-radius: 50%; 
+            font-size: 16px;
+        }
+        .modal-body { 
+            padding: 20px; 
+            overflow-y: auto; 
+            max-height: calc(85vh - 80px); 
+        }
+        .client-detail { 
+            margin-bottom: 10px; 
+            padding: 10px; 
+            background: #f8fafc; 
+            border-radius: 8px; 
+            border-left: 4px solid #667eea; 
+            font-size: 13px;
+        }
+        .client-detail strong { 
+            display: block; 
+            margin-bottom: 3px; 
+            color: #1a202c; 
+            font-weight: 700; 
+        }
+        
+        /* OPTIMISATIONS ANDROID SPECIFIQUES */
+        * { 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        input, textarea, select { 
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        .btn, .nav-btn { 
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+            touch-action: manipulation; 
+        }
+        .input-field, select { 
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+        }
+        .clients-table { 
+            -webkit-overflow-scrolling: touch; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 Admin DS Parfum Mobile</h1>
+            <p>Interface mobile ultra-optimisée</p>
+            <div class="admin-nav">
+                <button class="nav-btn active" onclick="showSection('dashboard')">📊 Stats</button>
+                <button class="nav-btn" onclick="showSection('clients')">👥 Clients</button>
+                <button class="nav-btn" onclick="showSection('settings')">⚙️ Config</button>
+            </div>
+        </div>
+
+        <div class="debug-info" id="debug-info">
+            <strong>🔧 Debug:</strong> <span id="debug-message">Initialisation...</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" id="total-clients">-</div>
+                <div class="label">👥 Clients</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="total-revenue">-</div>
+                <div class="label">💰 CA Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="recent-clients">-</div>
+                <div class="label">🆕 Nouveaux</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="server-status">🔴</div>
+                <div class="label">🖥️ Statut</div>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>👥 Gestion Clients</h2>
+            <div class="controls">
+                <button class="btn" onclick="loadClients()">🔄 Actualiser</button>
+                <button class="btn success" onclick="exportCSV()">📊 Export CSV</button>
+                <button class="btn warning" onclick="createBackup()">💾 Backup</button>
+                <button class="btn danger" onclick="toggleDebug()">🔧 Debug</button>
+                <div class="filter-group">
+                    <label>🔍</label>
+                    <input type="text" class="input-field" id="search-input" placeholder="Rechercher..." onkeyup="filterClients()">
+                </div>
+            </div>
+
+            <div class="backup-info" id="backup-status">
+                <strong>💾 Statut:</strong> <span id="backup-message"></span>
+            </div>
+            
+            <div id="clients-container">
+                <p class="loading">Cliquez sur "Actualiser" pour charger les clients</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allClients = [];
+        let filteredClients = [];
+        let debugMode = false;
+        
+        // DETECTION ENVIRONNEMENT MOBILE
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        function isAndroid() {
+            return /Android/i.test(navigator.userAgent);
+        }
+        
+        function getApiBaseUrl() {
+            // Détecter l'environnement et ajuster l'URL
+            const hostname = window.location.hostname;
+            
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                // Mode développement local
+                return window.location.origin;
+            } else if (hostname.includes('netlify') || hostname.includes('dsparfum.fr')) {
+                // Mode production - toujours utiliser l'API principale
+                return 'https://api.dsparfum.fr';
+            } else {
+                // Fallback
+                return 'https://api.dsparfum.fr';
+            }
+        }
+        
+        function debugLog(message) {
+            console.log(`🔧 [DEBUG] ${message}`);
+            if (debugMode) {
+                const debugDiv = document.getElementById('debug-info');
+                const debugMessage = document.getElementById('debug-message');
+                debugMessage.textContent = message;
+                debugDiv.style.display = 'block';
+                setTimeout(() => {
+                    if (debugDiv.style.display === 'block') {
+                        debugDiv.style.display = 'none';
+                    }
+                }, 5000);
+            }
+        }
+        
+        function toggleDebug() {
+            debugMode = !debugMode;
+            debugLog(`Mode debug ${debugMode ? 'activé' : 'désactivé'}`);
+            showStatus(`🔧 Debug ${debugMode ? 'ON' : 'OFF'}`, 'info');
+        }
+        
+        // BYPASS CACHE ANDROID ET CORS
+        function setupMobileFixes() {
+            debugLog(`Environnement: ${isMobile() ? 'Mobile' : 'Desktop'} - ${isAndroid() ? 'Android' : 'Autre'}`);
+            debugLog(`API URL: ${getApiBaseUrl()}`);
+            
+            if (isAndroid()) {
+                // Override fetch pour Android avec headers spéciaux
+                const originalFetch = window.fetch;
+                window.fetch = function(url, options = {}) {
+                    const finalOptions = {
+                        ...options,
+                        mode: 'cors',
+                        cache: 'no-cache',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'User-Agent': navigator.userAgent,
+                            ...options.headers
+                        }
+                    };
+                    
+                    debugLog(`Fetch vers: ${url}`);
+                    debugLog(`Headers: ${JSON.stringify(finalOptions.headers)}`);
+                    
+                    return originalFetch(url, finalOptions);
+                };
+            }
+        }
+        
+        // INITIALISATION
+        document.addEventListener('DOMContentLoaded', () => {
+            setupMobileFixes();
+            debugLog('Interface mobile initialisée');
+            testServerConnection();
+        });
+
+        async function testServerConnection() {
+            const apiUrl = getApiBaseUrl();
+            debugLog(`Test connexion vers: ${apiUrl}`);
+            
+            try {
+                // Test simple de ping
+                const response = await fetch(`${apiUrl}/api/admin/clients`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    document.getElementById('server-status').textContent = '🟢';
+                    debugLog('Connexion serveur OK');
+                    showStatus('✅ Serveur connecté', 'success');
+                } else {
+                    document.getElementById('server-status').textContent = '🟡';
+                    debugLog(`Serveur répond mais erreur: ${response.status}`);
+                    showStatus(`⚠️ Serveur erreur ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                document.getElementById('server-status').textContent = '🔴';
+                debugLog(`Erreur connexion: ${error.message}`);
+                showStatus('❌ Serveur inaccessible', 'error');
+            }
+        }
+
+        async function loadClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '<p class="loading">⏳ Chargement...</p>';
+            
+            const apiUrl = getApiBaseUrl();
+            debugLog(`Chargement clients depuis: ${apiUrl}`);
+            
+            try {
+                const response = await fetch(`${apiUrl}/api/admin/clients`);
+                debugLog(`Réponse: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                let clientsData = Array.isArray(data) ? data : (data.clients || []);
+                
+                debugLog(`Clients reçus: ${clientsData.length}`);
+                
+                if (clientsData.length > 0) {
+                    allClients = clientsData;
+                    filteredClients = [...allClients];
+                    updateStatistics();
+                    displayClients();
+                    showStatus(`✅ ${clientsData.length} clients chargés`, 'success');
+                } else {
+                    container.innerHTML = '<p class="loading">📭 Aucun client trouvé</p>';
+                    showStatus('⚠️ Aucun client', 'warning');
+                }
+            } catch (error) {
+                const errorMsg = `❌ Erreur: ${error.message}`;
+                container.innerHTML = `<p style="color: red; padding: 20px; text-align: center;">${errorMsg}</p>`;
+                debugLog(`Erreur chargement: ${error.message}`);
+                showStatus('❌ Erreur de chargement', 'error');
+            }
+        }
+
+        function updateStatistics() {
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const recentClients = allClients.filter(c => new Date(c.created_at) > weekAgo).length;
+            const totalRevenue = allClients.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
+
+            document.getElementById('total-clients').textContent = allClients.length;
+            document.getElementById('total-revenue').textContent = totalRevenue.toFixed(0) + '€';
+            document.getElementById('recent-clients').textContent = recentClients;
+        }
+
+        function displayClients() {
+            const container = document.getElementById('clients-container');
+            const clientsToShow = filteredClients.slice(0, 20); // Limite pour mobile
+            
+            if (clientsToShow.length === 0) {
+                container.innerHTML = '<p class="loading">🔍 Aucun résultat</p>';
+                return;
+            }
+
+            let html = '<table class="clients-table"><tr><th>ID</th><th>Nom</th><th>Email</th><th>CA</th><th>Date</th><th>Actions</th></tr>';
+            
+            clientsToShow.forEach(client => {
+                const createdDate = new Date(client.created_at);
+                const isRecent = (Date.now() - createdDate) < (7 * 24 * 60 * 60 * 1000);
+                const statusBadge = isRecent ? '<span class="badge recent">New</span>' : '<span class="badge old">Old</span>';
+                const clientRevenue = client.total_revenue || 0;
+                
+                html += `<tr>
+                    <td><strong>#${client.id}</strong></td>
+                    <td>${(client.name || 'N/A').substring(0, 15)}</td>
+                    <td>${client.email.substring(0, 20)}</td>
+                    <td><strong>${clientRevenue.toFixed(0)}€</strong></td>
+                    <td>${createdDate.toLocaleDateString('fr-FR')}</td>
+                    <td>
+                        <button class="btn danger" onclick="deleteClient(${client.id})" title="Supprimer" style="padding: 4px 8px; font-size: 10px;">🗑️</button>
+                        <button class="btn" onclick="showClientDetails(${client.id})" title="Détails" style="padding: 4px 8px; font-size: 10px;">👁️</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</table>';
+            
+            if (filteredClients.length > 20) {
+                html += `<p style="text-align: center; margin-top: 10px; color: #4a5568;">Affichage des 20 premiers clients sur ${filteredClients.length}</p>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function filterClients() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            filteredClients = allClients.filter(client => {
+                return !searchTerm || 
+                    client.name?.toLowerCase().includes(searchTerm) ||
+                    client.email?.toLowerCase().includes(searchTerm);
+            });
+            
+            displayClients();
+        }
+
+        function showClientDetails(clientId) {
+            const client = allClients.find(c => c.id === clientId);
+            if (!client) return;
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Détails client #${client.id}</h3>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="client-detail"><strong>ID:</strong> ${client.id}</div>
+                        <div class="client-detail"><strong>Nom:</strong> ${client.name || '-'}</div>
+                        <div class="client-detail"><strong>Email:</strong> ${client.email || '-'}</div>
+                        <div class="client-detail"><strong>Téléphone:</strong> ${client.phone || '-'}</div>
+                        <div class="client-detail"><strong>CA Client:</strong> ${(client.total_revenue || 0).toFixed(2)}€</div>
+                        <div class="client-detail"><strong>Nb Commandes:</strong> ${client.total_orders || 0}</div>
+                        <div class="client-detail"><strong>Date:</strong> ${new Date(client.created_at).toLocaleString('fr-FR')}</div>
+                        <div class="client-detail"><strong>Message:</strong> ${(client.message || '-').substring(0, 100)}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function deleteClient(id) {
+            const client = allClients.find(c => c.id === id);
+            if (!client || !confirm(`Supprimer ${client.name || client.email} ?`)) return;
+            
+            const apiUrl = getApiBaseUrl();
+            
+            try {
+                showStatus('🗑️ Suppression...', 'info');
+                const response = await fetch(`${apiUrl}/api/admin/clients/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('✅ Client supprimé', 'success');
+                    await loadClients();
+                } else {
+                    showStatus('❌ Erreur: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Erreur: ' + error.message, 'error');
+                debugLog(`Erreur suppression: ${error.message}`);
+            }
+        }
+
+        async function exportCSV() {
+            const apiUrl = getApiBaseUrl();
+            
+            try {
+                showStatus('📁 Export en cours...', 'info');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                window.open(`${apiUrl}/api/admin/export?filename=dsparfum-mobile-${timestamp}.csv`, '_blank');
+                showStatus('✅ Export terminé', 'success');
+            } catch (error) {
+                showStatus('❌ Erreur export: ' + error.message, 'error');
+                debugLog(`Erreur export: ${error.message}`);
+            }
+        }
+
+        async function createBackup() {
+            try {
+                showStatus('💾 Backup en cours...', 'info');
+                const timestamp = new Date().toISOString();
+                const backupData = { 
+                    timestamp, 
+                    clients: allClients, 
+                    total: allClients.length,
+                    platform: 'mobile',
+                    userAgent: navigator.userAgent
+                };
+                
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dsparfum-mobile-backup-${timestamp.slice(0, 19).replace(/:/g, '-')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showStatus('✅ Backup créé', 'success');
+            } catch (error) {
+                showStatus('❌ Erreur backup: ' + error.message, 'error');
+                debugLog(`Erreur backup: ${error.message}`);
+            }
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            switch(section) {
+                case 'dashboard':
+                    showStatus('📊 Dashboard actif', 'info');
+                    break;
+                case 'clients':
+                    showStatus('👥 Section clients', 'info');
+                    break;
+                case 'settings':
+                    showSettings();
+                    break;
+            }
+        }
+
+        function showSettings() {
+            const container = document.getElementById('clients-container');
+            const apiUrl = getApiBaseUrl();
+            
+            container.innerHTML = `
+                <div style="padding: 20px; background: #f8fafc; border-radius: 12px;">
+                    <h3 style="margin-bottom: 20px;">⚙️ Configuration Mobile</h3>
+                    <div style="display: grid; gap: 15px;">
+                        <div style="background: white; padding: 15px; border-radius: 8px;">
+                            <h4>🔧 Environnement</h4>
+                            <p><strong>API:</strong> ${apiUrl}</p>
+                            <p><strong>Mobile:</strong> ${isMobile() ? 'Oui' : 'Non'}</p>
+                            <p><strong>Android:</strong> ${isAndroid() ? 'Oui' : 'Non'}</p>
+                            <p><strong>User-Agent:</strong> ${navigator.userAgent.substring(0, 50)}...</p>
+                            <button class="btn" onclick="testServerConnection()" style="margin-top: 10px;">🔗 Test Connexion</button>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px;">
+                            <h4>💾 Actions</h4>
+                            <button class="btn warning" onclick="createBackup()" style="margin-right: 10px;">💾 Backup</button>
+                            <button class="btn" onclick="clearCache()">🗑️ Cache</button>
+                            <button class="btn danger" onclick="toggleDebug()" style="margin-top: 10px;">🔧 Debug</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            showStatus('⚙️ Configuration affichée', 'info');
+        }
+
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            showStatus('🗑️ Cache vidé', 'success');
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('backup-status');
+            const messageSpan = document.getElementById('backup-message');
+            
+            messageSpan.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            const colors = {
+                success: '#c6f6d5',
+                error: '#fed7d7',
+                info: '#bee3f8',
+                warning: '#fef5e7'
+            };
+            statusDiv.style.background = colors[type] || colors.info;
+            
+            setTimeout(() => statusDiv.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

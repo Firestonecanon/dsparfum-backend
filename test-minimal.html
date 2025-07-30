@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- FAVICON DATA URL POUR ÉVITER LE CHARGEMENT EXTERNE -->
+<link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAABILAAASCwAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A">
+<link rel="shortcut icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAABILAAASCwAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A">
+<title>Test Mobile</title>
+<style>
+body{font-family:Arial;margin:20px;background:#f0f0f0;}
+.box{background:white;padding:20px;border-radius:10px;margin:10px 0;}
+button{background:#007bff;color:white;border:none;padding:10px 20px;border-radius:5px;margin:5px;cursor:pointer;}
+.result{background:#e7f3e7;padding:10px;border-radius:5px;margin:10px 0;font-family:monospace;font-size:12px;}
+.error{background:#f8d7da;border:1px solid #f5c6cb;}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h1>🌟 Test Mobile Minimal</h1>
+<p>Diagnostic ultra-simple</p>
+<button onclick="test1()">Test 1: Info Base</button>
+<button onclick="test2()">Test 2: API Locale</button>
+<button onclick="test3()">Test 3: API Prod</button>
+<button onclick="clear1()">Clear</button>
+</div>
+
+<div id="result" class="result">
+Prêt pour les tests...
+</div>
+
+<script>
+function log(msg) {
+  document.getElementById('result').innerHTML += msg + '<br>';
+  console.log(msg);
+}
+
+function clear1() {
+  document.getElementById('result').innerHTML = 'Nettoyé...<br>';
+}
+
+function test1() {
+  log('=== TEST 1 ===');
+  log('URL: ' + window.location.href);
+  log('UserAgent: ' + navigator.userAgent);
+  log('Mobile: ' + (/Android|iPhone|iPad/i.test(navigator.userAgent)));
+  log('Taille: ' + window.innerWidth + 'x' + window.innerHeight);
+}
+
+async function test2() {
+  log('=== TEST 2 - API LOCALE ===');
+  try {
+    const response = await fetch('http://localhost:3001/api/admin/clients');
+    log('Status: ' + response.status);
+    if (response.ok) {
+      const data = await response.json();
+      log('Données OK: ' + (Array.isArray(data) ? data.length + ' items' : 'objet'));
+    } else {
+      log('Erreur HTTP: ' + response.status);
+    }
+  } catch (e) {
+    log('ERREUR: ' + e.message);
+  }
+}
+
+async function test3() {
+  log('=== TEST 3 - API PROD ===');
+  try {
+    const response = await fetch('https://api.dsparfum.fr/api/admin/clients');
+    log('Status: ' + response.status);
+    if (response.ok) {
+      const data = await response.json();
+      log('Données OK: ' + (Array.isArray(data) ? data.length + ' items' : 'objet'));
+    } else {
+      log('Erreur HTTP: ' + response.status);
+    }
+  } catch (e) {
+    log('ERREUR: ' + e.message);
+  }
+}
+
+log('Interface initialisée à ' + new Date().toLocaleTimeString());
+</script>
+
+</body>
+</html>

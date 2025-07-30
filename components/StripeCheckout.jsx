@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CHECKOUT_URL } from '../src/config/api.js';
 
 const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }) => {
   const [processing, setProcessing] = useState(false);
@@ -34,7 +35,7 @@ const StripeCheckout = ({ cart, total, onSuccess, onCancel, setIsWaitingStripe }
       }
       return newItem;
     });
-    fetch('https://dsparfum-backend-go.onrender.com/api/create-checkout-session', {
+    fetch(CHECKOUT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -14,8 +14,8 @@ const API_CONFIG = {
 
 // Détecter l'environnement
 const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
-// 🔧 TEMPORAIRE: Forcer le développement pour tester les corrections
-const currentEnv = 'development'; // isDevelopment ? 'development' : 'production';
+// 🚀 FORCER PRODUCTION pour Netlify
+const currentEnv = 'production';
 
 // Export des URLs courantes
 export const API_BASE_URL = API_CONFIG[currentEnv].BASE_URL;
