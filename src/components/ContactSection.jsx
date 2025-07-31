@@ -198,7 +198,68 @@ export default function ContactSection() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12">
+          {/* Version mobile optimisée */}
+          <div className="lg:hidden">
+            {/* Section coordonnées compacte mobile */}
+            <div className="mb-8 bg-white/80 backdrop-blur-xl p-4 rounded-2xl border-2 border-amber-300 shadow-lg">
+              <h3 className="text-xl font-bold text-amber-900 font-serif mb-4 text-center">📞 Nos coordonnées</h3>
+              
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="text-center p-3 bg-amber-50/60 rounded-xl">
+                  <div className="text-2xl mb-1">📧</div>
+                  <div className="text-xs font-semibold text-amber-900">Email</div>
+                  <a href="mailto:contact@dsparfum.fr" className="text-xs text-amber-700 font-bold hover:underline break-all">contact@dsparfum.fr</a>
+                </div>
+                
+                <div className="text-center p-3 bg-amber-50/60 rounded-xl">
+                  <div className="text-2xl mb-1">📱</div>
+                  <div className="text-xs font-semibold text-amber-900">Téléphone</div>
+                  <a href="tel:+33664869951" className="text-xs text-amber-700 font-bold hover:underline">06 64 86 99 51</a>
+                </div>
+              </div>
+              
+              {/* Modes de paiement compacts */}
+              <div className="p-3 bg-amber-50/40 rounded-xl">
+                <div className="text-xs font-semibold text-amber-900 mb-2 text-center">Paiements acceptés</div>
+                <div className="flex justify-center gap-4 text-lg">
+                  {paymentMethods.map((method) => (
+                    <span key={method.id} title={method.name}>{method.icon}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Formulaire mobile */}
+            <div className="bg-white/80 backdrop-blur-xl p-4 rounded-2xl border-2 border-amber-300 shadow-lg">
+              <h3 className="text-xl font-bold text-amber-900 font-serif mb-4 text-center">✉️ Envoyez-nous un message</h3>
+              
+              {orderLoaded && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🛒</span>
+                    <span className="text-sm font-semibold text-green-800">Commande détectée et ajoutée au message</span>
+                  </div>
+                </div>
+              )}
+
+              <CustomerInfoForm onSubmit={handleSubmit} />
+
+              {sent && (
+                <div className="mt-4 p-3 bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl text-center">
+                  <span className="text-green-800 font-semibold">✅ Message envoyé avec succès !</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="mt-4 p-3 bg-gradient-to-r from-red-100 to-pink-100 border border-red-300 rounded-xl text-center">
+                  <span className="text-red-800 font-semibold">❌ {error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Version desktop (inchangée) */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-12">
             {/* Informations de contact */}
             <div className="space-y-8">
               <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl border-2 border-amber-300 shadow-lg hover:shadow-amber-200/60 hover:border-amber-400 transition-all duration-500 contact-glass">

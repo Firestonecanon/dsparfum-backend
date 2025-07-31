@@ -152,6 +152,65 @@ React.useEffect(() => {
   };
 
   // Paiement Stripe réussi
+  const [isWakingUpServer, setIsWakingUpServer] = useState(false);
+
+  // Fonction pour réveiller le serveur dès qu'on ouvre le panier
+  const wakeUpServer = async () => {
+    if (isWakingUpServer) return; // Éviter les appels multiples
+    
+    setIsWakingUpServer(true);
+    try {
+      console.log('🔄 Réveil du serveur Render...');
+      // Appel simple pour réveiller le serveur
+      const response = await fetch('https://api.dsparfum.fr/api/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
+      });
+      console.log('✅ Serveur réveillé:', response.status);
+    } catch (error) {
+      console.log('⚠️ Réveil serveur en cours:', error.message);
+    } finally {
+      setIsWakingUpServer(false);
+    }
+  };
+
+  // Réveiller le serveur dès l'ouverture du panier
+  React.useEffect(() => {
+    if (isOpen && items.length > 0) {
+      wakeUpServer();
+    }
+  }, [isOpen]);
+
+  // Réveiller le serveur quand on commence à remplir les infos
+  React.useEffect(() => {
+    if (clientData.email && clientData.email.includes('@')) {
+      wakeUpServer();
+    }
+  }, [clientData.email]);
+
+  // Fonction sécurisée pour vider le panier
+  const handleClearCart = () => {
+    try {
+      // Confirmation avant de vider
+      if (window.confirm('Êtes-vous sûr de vouloir vider le panier ?')) {
+        clearCart();
+        
+        // Reset des states pour éviter les bugs
+        setShowPrePaymentForm(false);
+        setShowCheckout(false);
+        setIsWaitingStripe(false);
+        setPaymentStatus(null);
+        
+        // Fermer la modal proprement
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Erreur lors du vidage du panier:', error);
+    }
+  };
+
   const handlePaymentSuccess = (paymentData) => {
     setIsWaitingStripe(false);  
     const summary = getCartSummary();
@@ -213,9 +272,24 @@ React.useEffect(() => {
 
     clearCart();
     
-    // Fermer la modal et afficher un message de succès
+    // Reset tous les states pour éviter les bugs
     setShowCheckout(false);
-    onClose();
+    setIsWaitingStripe(false);
+    setPaymentStatus(null);
+    setClientData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      street: '',
+      postalCode: '',
+      city: ''
+    });
+    
+    // Fermer la modal avec un petit délai pour éviter les conflits
+    setTimeout(() => {
+      onClose();
+    }, 100);
     
     // Message de confirmation du paiement
     alert(`🎉 Paiement réussi !\n\nMerci pour votre commande.\nNous vous contacterons bientôt pour la livraison.\n\nNuméro de commande : ${paymentData.id}`);
@@ -226,18 +300,51 @@ React.useEffect(() => {
     setIsWaitingStripe(false);
   };
 
-  // Overlay d'attente AVANT StripeCheckout (optionnel)
+  // Overlay d'attente AVANT StripeCheckout avec infos utiles
   if (isWaitingStripe && !showCheckout) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-          <svg className="animate-spin h-12 w-12 text-yellow-400 mb-6" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M6 2v2h1v2.5c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V4h1V2H6zm1 4V4h10v2c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1zm10 14v-2h-1v-2.5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2V18H5v2h14zm-1-4v2H7v-2c0-.55.45-1 1-1h6c.55 0 1 .45 1 1z"/>
-          </svg>
-          <span className="text-white text-lg font-semibold text-center">
-            Veuillez patienter,<br />
-            la fenêtre de paiement peut mettre jusqu'à 30 secondes à s'ouvrir...
-          </span>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-md text-center">
+          <div className="relative mb-8">
+            <svg className="animate-spin h-16 w-16 text-yellow-400 mb-4" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M6 2v2h1v2.5c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V4h1V2H6zm1 4V4h10v2c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1zm10 14v-2h-1v-2.5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2V18H5v2h14zm-1-4v2H7v-2c0-.55.45-1 1-1h6c.55 0 1 .45 1 1z"/>
+            </svg>
+            {isWakingUpServer && (
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-pulse flex items-center justify-center">
+                <span className="text-xs text-white">🔄</span>
+              </div>
+            )}
+          </div>
+          
+          <h3 className="text-white text-xl font-bold mb-4">🔐 Préparation du paiement sécurisé</h3>
+          
+          <div className="space-y-3 text-white/90">
+            <p className="text-lg font-semibold">
+              ⏳ Veuillez patienter...
+            </p>
+            <p className="text-sm">
+              La fenêtre de paiement Stripe peut prendre <strong>jusqu'à 30 secondes</strong> à s'afficher
+            </p>
+            {isWakingUpServer && (
+              <p className="text-sm text-green-400 animate-pulse">
+                🚀 Optimisation en cours : réveil du serveur pour accélérer le processus
+              </p>
+            )}
+            <div className="mt-6 p-4 bg-white/10 rounded-lg">
+              <p className="text-xs text-white/80">
+                💡 <strong>Pourquoi cette attente ?</strong><br/>
+                Nous utilisons des serveurs écologiques qui se mettent en veille pour économiser l'énergie. 
+                Cette attente garantit un paiement 100% sécurisé.
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={handlePaymentCancel}
+            className="mt-6 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            ❌ Annuler
+          </button>
         </div>
       </div>
     );
@@ -441,7 +548,7 @@ React.useEffect(() => {
                 
                 <button
                   className="w-full bg-gray-200 text-black py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-                  onClick={clearCart}
+                  onClick={handleClearCart}
                 >
                   Vider le panier
                 </button>
@@ -499,7 +606,7 @@ React.useEffect(() => {
               <div className="flex justify-end mt-6 space-x-4">
                 <button
                   className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
-                  onClick={clearCart}
+                  onClick={handleClearCart}
                 >
                   Vider le panier
                 </button>
